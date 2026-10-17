@@ -1304,7 +1304,7 @@ function makeSiteBuilding(x, y, kind, r, bi, rng, cx, cy){
   return {
     x: x, y: y, kind: kind, r: r, rot: 0,
     seed: rng() * 100,
-    style: TOWN_KINDS[kind] ? bi : null,
+    style: (TOWN_KINDS[kind] || kind === 'chestHut') ? bi : null,
     variant: Math.floor(rng() * 3)
   };
 }
@@ -3326,7 +3326,10 @@ function genChestSite(bi, cx, cy, rng){
     x: cx, y: cy, id: 'ch' + bi + '_' + Math.round(cx) + '_' + Math.round(cy),
     bi: bi, open: false
   };
+  /* 秘境主建筑按「城镇建筑」样式绘制（走 BUILD_STYLES 配色），不能落到 landmark 分支 */
+  /* 秘境主建筑按「城镇建筑」样式绘制（走 BUILD_STYLES 配色），不能落到 landmark 分支 */
   const buildings = [makeSiteBuilding(cx, cy, 'chestHut', 92, bi, rng, cx, cy)];
+  buildings[0].style = bi;
   /* 左右各一座守护石灯 */
   buildings.push(makeSiteBuilding(cx - 96, cy + 24, 'lantern', 38, bi, rng, cx, cy));
   buildings.push(makeSiteBuilding(cx + 96, cy + 24, 'lantern', 38, bi, rng, cx, cy));
