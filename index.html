@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>仙途·问道 v17.0</title>
+<title>仙途·问道 v18.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0e1a16;
@@ -210,12 +210,33 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   background:rgba(50,42,20,.85)}
 .bagWeapon.locked{opacity:.35;cursor:not-allowed;filter:grayscale(0.7)}
 .bagWeapon .wname{font-size:14px;color:#e8c878}
+.bagWeapon .wattr{font-size:10px;color:rgba(200,190,170,.55);margin-left:6px;letter-spacing:.1em}
+.bagWeapon .wprevWrap{position:relative;width:100%;height:130px;border-radius:6px;overflow:hidden;
+  background:radial-gradient(circle at 50% 50%,rgba(20,30,44,.9),rgba(8,12,20,.2))}
+.bagWeapon .wprev{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
 .bagWeapon .wbonus{font-size:11px;color:#89e2ce}
 .bagWeapon .weffect{font-size:10px;color:rgba(200,190,170,.6);margin-top:2px}
 .bagWeapon .wtag{font-size:10px;color:rgba(200,190,170,.5)}
 .bagWeapon .wdot{position:absolute;top:10px;right:10px;width:14px;height:14px;border-radius:50%;
   box-shadow:0 0 12px currentColor}
 .bagHint{font-size:11px;color:rgba(200,190,170,.55);text-align:center;margin-top:8px}
+/* ===== v18：区域开放提示 ===== */
+#unlockNote{position:fixed;left:50%;top:11%;transform:translateX(-50%) translateY(-14px);z-index:39;
+  min-width:280px;max-width:min(560px,92vw);padding:14px 28px 16px;text-align:center;
+  background:linear-gradient(180deg,rgba(34,28,10,.96),rgba(14,18,26,.96));
+  border:1px solid rgba(255,216,112,.7);border-radius:6px;pointer-events:none;
+  box-shadow:0 0 46px rgba(255,200,80,.5),inset 0 0 34px rgba(255,216,112,.12);
+  opacity:0;transition:opacity .55s ease,transform .55s ease}
+#unlockNote.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#unlockNote .unTag{font-size:11px;letter-spacing:.5em;text-indent:.5em;color:#ffd870;opacity:.85}
+#unlockNote .unName{font-size:26px;letter-spacing:.34em;text-indent:.34em;color:#fff0c0;margin:5px 0 4px;
+  text-shadow:0 0 24px rgba(255,200,90,.95)}
+#unlockNote .unSub{font-size:12px;letter-spacing:.1em;color:rgba(230,220,195,.82);line-height:1.85}
+#unlockNote .unDiff{margin-top:7px;font-size:12px;letter-spacing:.08em;color:#ffb060}
+#biomeBanner{transition:opacity .8s}
+#biomeLine{color:#ffcf70}
+#weaponLine{color:#8fe3ff}
+#mapGrid .mapCard .mcReq b{font-weight:400}
 </style>
 </head>
 <body>
@@ -224,6 +245,7 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
 <div id="hurtOverlay"></div>
 <div id="flashOverlay"></div>
 <div id="biomeBanner"></div>
+<div id="unlockNote"><div class="unTag">新 境 开 启</div><div class="unName"></div><div class="unSub"></div><div class="unDiff"></div></div>
 <div id="leftZone"></div>
 <div id="joyBase"><div id="joyKnob"></div></div>
 
@@ -244,9 +266,9 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   <div id="stoneLine">灵石 0</div>
   <div id="weaponLine">⚔ 青锋剑</div>
   <div id="swordLine">剑阵 · 未悟</div>
-  <div id="biomeLine">青云竹林</div>
+  <div id="biomeLine">青云竹林 · 难度 1</div>
   <div id="shieldLine">护盾 0</div>
-  <div class="ver-tag">v17.0</div>
+  <div class="ver-tag">v18.0</div>
 </div>
 
 <div id="topButtons">
@@ -294,12 +316,13 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
 
 <div id="startScreen">
   <h1>仙 途 · 问 道</h1>
-  <p class="ver">VERSION 17.0</p>
+  <p class="ver">VERSION 18.0</p>
   <button id="startBtn">踏 入 仙 途</button>
   <p class="hint">
     拖动屏幕 / WASD 移动　·　空格或 J 平A<br>
     1 ~ 8 释放技能　·　「遁光」化光球冲刺撞击<br>
-    建筑群落散落十方 · 妖王各怀神通
+    十方胜境 · 妖王各怀神通 · 越往深处越凶险<br>
+    境界精进将开启新境 · 留意「新境开启」告示
   </p>
 </div>
 
@@ -380,52 +403,85 @@ resize();
 
 const BIOME_ORIGIN = [];
 const BIOME_EMOJIS = ['🎋','🌋','🌳','👻','🏜️','❄️','🌊','⛩️','💀','✨'];
+const DIFFICULTY_NAMES = ['清幽','微澜','险峻','幽深','赤旱','极寒','渊海','天阙','魔渊','太虚'];
 const BIOMES = [
-  { id:'bamboo', name:'青云竹林', desc:'翠竹连绵', realmReq:0,
+  { id:'bamboo', name:'青云竹林', desc:'翠竹连绵 · 妖狼初现', realmReq:0,
+    power:1.00, hp:1.00, reward:0.56, dens:1.00, elite:0.00,
     h1:128,h2:40,s1:32,s2:22,l1:19,l2:10, tint:'rgba(40,90,60,0.06)',
     propTypes:['bamboo','bamboo','bamboo','pine','rock'], lakeType:'water' },
-  { id:'volcano', name:'赤炎火山', desc:'熔岩奔涌', realmReq:1,
+  { id:'volcano', name:'赤炎火山', desc:'熔岩奔涌 · 火鸦成群', realmReq:1,
+    power:1.36, hp:1.32, reward:0.44, dens:0.88, elite:0.05,
     h1:5,h2:25,s1:50,s2:22,l1:16,l2:9, tint:'rgba(180,50,20,0.13)',
     propTypes:['lavarock','lavarock','obsidian','ashrock'], lakeType:'lava' },
-  { id:'wildwood', name:'万妖古林', desc:'古木参天', realmReq:1,
+  { id:'wildwood', name:'万妖古林', desc:'古木参天 · 藤妖盘踞', realmReq:1,
+    power:1.72, hp:1.60, reward:0.38, dens:0.90, elite:0.08,
     h1:95,h2:22,s1:34,s2:16,l1:14,l2:7, tint:'rgba(60,80,30,0.13)',
     propTypes:['bigtree','bigtree','vine','mushroom'], lakeType:'swamp' },
-  { id:'ghost', name:'幽冥鬼域', desc:'阴风惨惨', realmReq:2,
+  { id:'ghost', name:'幽冥鬼域', desc:'阴风惨惨 · 怨灵噬魂', realmReq:2,
+    power:2.12, hp:1.98, reward:0.34, dens:0.85, elite:0.11,
     h1:275,h2:30,s1:24,s2:14,l1:11,l2:6, tint:'rgba(80,30,120,0.16)',
     propTypes:['deadtree','deadtree','grave','bone'], lakeType:'blood' },
-  { id:'desert', name:'星陨荒漠', desc:'黄沙漫天', realmReq:2,
+  { id:'desert', name:'星陨荒漠', desc:'黄沙漫天 · 陨石为阵', realmReq:2,
+    power:2.60, hp:2.42, reward:0.31, dens:0.82, elite:0.14,
     h1:38,h2:15,s1:42,s2:18,l1:28,l2:12, tint:'rgba(180,140,60,0.12)',
     propTypes:['cactus','cactus','meteor','dune'], lakeType:'oasis' },
-  { id:'snow', name:'寒冰雪原', desc:'冰封千里', realmReq:3,
+  { id:'snow', name:'寒冰雪原', desc:'冰封千里 · 寒煞凝形', realmReq:3,
+    power:3.20, hp:2.95, reward:0.28, dens:0.78, elite:0.17,
     h1:200,h2:22,s1:14,s2:8,l1:58,l2:12, tint:'rgba(150,200,240,0.10)',
     propTypes:['snowpine','snowpine','icecrystal','snowrock'], lakeType:'ice' },
-  { id:'ocean', name:'碧海归墟', desc:'沧海桑田', realmReq:3,
+  { id:'ocean', name:'碧海归墟', desc:'沧海桑田 · 蛟影潜行', realmReq:3,
+    power:3.92, hp:3.60, reward:0.25, dens:0.75, elite:0.20,
     h1:190,h2:20,s1:48,s2:20,l1:22,l2:10, tint:'rgba(40,120,180,0.13)',
     propTypes:['coral','coral','shell','seaweed'], lakeType:'water' },
-  { id:'celestial', name:'金阙仙山', desc:'祥云缭绕', realmReq:4,
+  { id:'celestial', name:'金阙仙山', desc:'祥云缭绕 · 神将镇守', realmReq:4,
+    power:4.80, hp:4.42, reward:0.22, dens:0.72, elite:0.23,
     h1:42,h2:20,s1:45,s2:22,l1:42,l2:14, tint:'rgba(255,210,110,0.10)',
     propTypes:['goldtree','cloud','goldpillar'], lakeType:'spirit' },
-  { id:'abyss', name:'九幽魔渊', desc:'魔气冲天', realmReq:4,
+  { id:'abyss', name:'九幽魔渊', desc:'魔气冲天 · 血海无涯', realmReq:4,
+    power:5.88, hp:5.40, reward:0.19, dens:0.70, elite:0.26,
     h1:0,h2:16,s1:55,s2:18,l1:8,l2:5, tint:'rgba(120,0,20,0.20)',
     propTypes:['thorn','thorn','skull','darkcrystal'], lakeType:'blood' },
-  { id:'star', name:'太虚星河', desc:'星辰为沙', realmReq:4,
+  { id:'star', name:'太虚星河', desc:'星辰为沙 · 尊者统天', realmReq:4,
+    power:7.20, hp:6.60, reward:0.16, dens:0.68, elite:0.30,
     h1:250,h2:35,s1:40,s2:25,l1:8,l2:6, tint:'rgba(80,50,160,0.18)',
     propTypes:['starstone','starstone','starflower','voidcloud'], lakeType:'star' }
 ];
 for(let i = 0; i < BIOMES.length; i++) BIOME_ORIGIN.push({ x: i * 1000000, y: i * 1000000 });
 
 const WEAPONS = [
-  { id:0, name:'青锋剑', atkBonus:0,    color:'200,240,255', biome:null, desc:'入门佩剑' },
-  { id:1, name:'翠竹剑', atkBonus:0.15, color:'150,255,180', biome:0, desc:'青云竹林 · 翠竹妖王掉落' },
-  { id:2, name:'离火剑', atkBonus:0.28, color:'255,140,70',  biome:1, desc:'赤炎火山 · 赤焰妖王掉落' },
-  { id:3, name:'妖藤剑', atkBonus:0.42, color:'160,255,120', biome:2, desc:'万妖古林 · 千年树妖掉落' },
-  { id:4, name:'幽冥剑', atkBonus:0.58, color:'180,120,255', biome:3, desc:'幽冥鬼域 · 幽冥魔将掉落' },
-  { id:5, name:'陨星剑', atkBonus:0.75, color:'255,180,100', biome:4, desc:'星陨荒漠 · 陨星魔将掉落' },
-  { id:6, name:'寒冰剑', atkBonus:0.95, color:'180,240,255', biome:5, desc:'寒冰雪原 · 冰魄妖王掉落' },
-  { id:7, name:'碧海剑', atkBonus:1.15, color:'120,220,255', biome:6, desc:'碧海归墟 · 碧海妖王掉落' },
-  { id:8, name:'金阙剑', atkBonus:1.4,  color:'255,220,120', biome:7, desc:'金阙仙山 · 金甲神将掉落' },
-  { id:9, name:'血魔剑', atkBonus:1.7,  color:'255,80,120',  biome:8, desc:'九幽魔渊 · 血魔老祖掉落' },
-  { id:10,name:'星河剑', atkBonus:2.1,  color:'220,180,255', biome:9, desc:'太虚星河 · 星河尊者掉落' }
+  { id:0, name:'青锋剑', atkBonus:0,    color:'200,240,255', biome:null, desc:'凡铁青锋 · 修士入门之物', tipColor:'220,255,255',
+    edge:'straight', metal:['#2f4654','#d8f2ff','#6f8da0'], lacquer:'#1e3a52', trim:'#c8a45c',
+    guard:'cross', gem:null, inscriptions:0, tassel:'#5aa0d0', aura:'mist', trail:'青', rune:'锋' },
+  { id:1, name:'翠竹剑', atkBonus:0.15, color:'150,255,180', biome:0, desc:'青云竹林 · 翠竹妖王掉落', tipColor:'180,255,180',
+    edge:'thin', metal:['#2a5a34','#e8ffd8','#5aa06a'], lacquer:'#20502a', trim:'#a8e070',
+    guard:'bamboo', gem:'rgba(150,255,170,1)', inscriptions:2, tassel:'#4ade80', aura:'leaf', trail:'竹', rune:'竹' },
+  { id:2, name:'离火剑', atkBonus:0.28, color:'255,140,70',  biome:1, desc:'赤炎火山 · 赤焰妖王掉落', tipColor:'255,220,140',
+    edge:'flame', metal:['#4a1208','#ffe8b0','#9a3a1a'], lacquer:'#5a1408', trim:'#ffb040',
+    guard:'wing', gem:'rgba(255,150,40,1)', inscriptions:3, tassel:'#ff6a30', aura:'fire', trail:'火', rune:'离' },
+  { id:3, name:'妖藤剑', atkBonus:0.42, color:'160,255,120', biome:2, desc:'万妖古林 · 千年树妖掉落', tipColor:'200,255,120',
+    edge:'serpent', metal:['#22381a','#e0ffb0','#5a7a3a'], lacquer:'#2a3a18', trim:'#c8e060',
+    guard:'vine', gem:'rgba(190,255,90,1)', inscriptions:3, tassel:'#86efac', aura:'leaf', trail:'藤', rune:'妖' },
+  { id:4, name:'幽冥剑', atkBonus:0.58, color:'180,120,255', biome:3, desc:'幽冥鬼域 · 幽冥魔将掉落', tipColor:'220,180,255',
+    edge:'straight', metal:['#1a1028','#ddd0ff','#4a3a6a'], lacquer:'#241238', trim:'#c8a0ff',
+    guard:'skull', gem:'rgba(190,120,255,1)', inscriptions:5, tassel:'#a070ff', aura:'ghost', trail:'幽冥', rune:'冥' },
+  { id:5, name:'陨星剑', atkBonus:0.75, color:'255,180,100', biome:4, desc:'星陨荒漠 · 陨星魔将掉落', tipColor:'255,220,160',
+    edge:'spike', metal:['#2a1a0a','#ffe0a0','#7a5a3a'], lacquer:'#3a2414', trim:'#ffc860',
+    guard:'ring', gem:'rgba(255,190,90,1)', inscriptions:4, tassel:'#d0a040', aura:'ember', trail:'陨星', rune:'陨' },
+  { id:6, name:'寒冰剑', atkBonus:0.95, color:'180,240,255', biome:5, desc:'寒冰雪原 · 冰魄妖王掉落', tipColor:'220,250,255',
+    edge:'crystal', metal:['#1a3a52','#f4fdff','#5a9ac0'], lacquer:'#12324a', trim:'#a0e8ff',
+    guard:'snow', gem:'rgba(190,240,255,.95)', inscriptions:5, tassel:'#b0f0ff', aura:'ice', trail:'寒', rune:'冰' },
+  { id:7, name:'碧海剑', atkBonus:1.15, color:'120,220,255', biome:6, desc:'碧海归墟 · 碧海妖王掉落', tipColor:'190,240,255',
+    edge:'wave', metal:['#0a2a3a','#d8f8ff','#2a6a8a'], lacquer:'#0c3a50', trim:'#80e0ff',
+    guard:'wave', gem:'rgba(120,220,255,1)', inscriptions:6, tassel:'#60d0ff', aura:'bubble', trail:'碧海', rune:'海' },
+  { id:8, name:'金阙剑', atkBonus:1.4,  color:'255,220,120', biome:7, desc:'金阙仙山 · 金甲神将掉落', tipColor:'255,240,180',
+    edge:'straight', metal:['#5a3a0a','#fff4c0','#c8962e'], lacquer:'#7a5410', trim:'#fff0a0',
+    guard:'dragon', gem:'rgba(255,230,120,1)', inscriptions:7, tassel:'#ffd860', aura:'halo', trail:'金阙', rune:'阙' },
+  { id:9, name:'血魔剑', atkBonus:1.7,  color:'255,80,120',  biome:8, desc:'九幽魔渊 · 血魔老祖掉落', tipColor:'255,160,180',
+    edge:'jagged', metal:['#2a0408','#ffb0b8','#7a1a2a'], lacquer:'#3a0410', trim:'#ff4060',
+    guard:'demon', gem:'rgba(255,50,80,1)', inscriptions:7, tassel:'#ff3050', aura:'blood', trail:'血', rune:'魔' },
+  { id:10,name:'星河剑', atkBonus:2.1,  color:'220,180,255', biome:9, desc:'太虚星河 · 星河尊者掉落', tipColor:'240,220,255',
+    edge:'starlight', metal:['#241850','#fbefff','#6a5ab0'], lacquer:'#1a1040', trim:'#d8c0ff',
+    guard:'star', gem:'rgba(230,200,255,1)', inscriptions:9, tassel:'#c0a0ff', aura:'star', trail:'星河', rune:'星' }
 ];
 const WEAPON_MAP = {};
 WEAPONS.forEach(w => { WEAPON_MAP[w.id] = w; });
@@ -444,35 +500,35 @@ const BOSS_BY_BIOME = [
 ];
 
 const BASE_SKILLS = [
-  { id:0, name:'剑气斩', key:'剑', mp:4,  cd:0.8, unlockLv:0,  type:'fan',    power:2.2, radius:170, color:'140,220,255' },
-  { id:1, name:'御剑术', key:'御', mp:10, cd:6.0, unlockLv:9,  type:'fly',    power:0,   radius:0,   color:'150,230,255' },
-  { id:2, name:'离火',   key:'火', mp:14, cd:1.8, unlockLv:12, type:'nova',   power:3.4, radius:210, color:'255,140,70'  },
-  { id:3, name:'回春',   key:'春', mp:12, cd:3.0, unlockLv:18, type:'heal',   power:0.45,radius:0,   color:'140,255,200' },
-  { id:4, name:'万剑阵', key:'阵', mp:18, cd:2.8, unlockLv:22, type:'swords', power:4.0, radius:0,   color:'190,240,255' },
-  { id:5, name:'雷霆',   key:'雷', mp:20, cd:2.0, unlockLv:27, type:'chain',  power:5.2, radius:340, color:'200,225,255' },
-  { id:6, name:'冰封',   key:'冰', mp:16, cd:3.5, unlockLv:31, type:'nova',   power:2.8, radius:260, color:'150,220,255', freeze:2.6 },
-  { id:7, name:'太虚域', key:'域', mp:32, cd:5.0, unlockLv:36, type:'domain', power:1.6, radius:250, color:'255,220,140' }
+  { id:0, name:'剑气斩', key:'剑', mp:4,  cd:0.8, unlockLv:0,  type:'fan',    power:2.2, radius:170, color:'140,220,255', fx:'120,210,255', sub:'235,250,255', trail:'slash',   hitFx:'slash',   shape:'arc',    desc:'凝气于剑，扇形斩出三重剑罡' },
+  { id:1, name:'御剑术', key:'御', mp:10, cd:6.0, unlockLv:9,  type:'fly',    power:0,   radius:0,   color:'150,230,255', fx:'180,240,255', sub:'255,255,255', trail:'wind',    desc:'脚踏神兵御气凌空，行路如风' },
+  { id:2, name:'离火',   key:'火', mp:14, cd:1.8, unlockLv:12, type:'nova',   power:3.4, radius:210, color:'255,140,70',  fx:'255,110,40',  sub:'255,236,150', trail:'fire',    hitFx:'burn',    shape:'nova',   desc:'真火自足下爆开，灼烧方圆二丈' },
+  { id:3, name:'回春',   key:'春', mp:12, cd:3.0, unlockLv:18, type:'heal',   power:0.45,radius:0,   color:'140,255,200', fx:'150,255,190', sub:'240,255,225', trail:'leaf',    desc:'木灵回春，青叶绕身修复伤势' },
+  { id:4, name:'万剑阵', key:'阵', mp:18, cd:2.8, unlockLv:22, type:'swords', power:4.0, radius:0,   color:'190,240,255', fx:'170,230,255', sub:'255,255,255', trail:'blade',   hitFx:'burst',   shape:'blade',  desc:'周身迸发十八道飞剑，环射八方' },
+  { id:5, name:'雷霆',   key:'雷', mp:20, cd:2.0, unlockLv:27, type:'chain',  power:5.2, radius:340, color:'200,225,255', fx:'150,190,255', sub:'255,255,230', trail:'thunder', hitFx:'spark',   desc:'引九天雷霆，于敌阵间连续传导五击' },
+  { id:6, name:'冰封',   key:'冰', mp:16, cd:3.5, unlockLv:31, type:'nova',   power:2.8, radius:260, color:'150,220,255', fx:'140,215,255', sub:'230,250,255', trail:'frost',   hitFx:'frost',   shape:'nova', freeze:2.6, desc:'寒气骤凝，冻结四周敌手 2.6 秒' },
+  { id:7, name:'太虚域', key:'域', mp:32, cd:5.0, unlockLv:36, type:'domain', power:1.6, radius:250, color:'255,220,140', fx:'255,210,120', sub:'255,255,235', trail:'halo',    shape:'domain', desc:'以身为界，展开太虚剑域持续绞杀' }
 ];
 const EXTRA_SKILLS = [
-  { id:8,  name:'破空斩',   key:'破', mp:8,  cd:1.0, unlockLv:0, type:'pierce',   power:5.0, radius:240, color:'220,240,255' },
-  { id:9,  name:'疾风步',   key:'疾', mp:6,  cd:4.0, unlockLv:0, type:'dash',     power:0,   radius:0,   color:'160,240,200' },
-  { id:10, name:'剑雨',     key:'雨', mp:24, cd:4.0, unlockLv:0, type:'rain',     power:3.0, radius:220, color:'180,220,255' },
-  { id:11, name:'护体金光', key:'护', mp:20, cd:6.0, unlockLv:0, type:'shield',   power:0.6, radius:0,   color:'255,240,180' },
-  { id:12, name:'归一',     key:'归', mp:40, cd:9.0, unlockLv:0, type:'ultimate', power:8.0, radius:320, color:'255,220,160' },
-  { id:13, name:'缩地成寸', key:'缩', mp:8,  cd:2.0, unlockLv:0, type:'teleport', power:0,   radius:200, color:'180,220,255' },
-  { id:24, name:'遁光',     key:'遁', mp:20, cd:10.0,unlockLv:18, type:'escape',   power:3.5, radius:0,   color:'255,240,180' }
+  { id:8,  name:'破空斩',   key:'破', mp:8,  cd:1.0, unlockLv:0, type:'pierce',   power:5.0, radius:240, color:'220,240,255', fx:'200,235,255', sub:'255,255,255', trail:'blade',  hitFx:'slash',  shape:'blade',  desc:'一剑光寒，直线贯透路径上所有敌人' },
+  { id:9,  name:'疾风步',   key:'疾', mp:6,  cd:4.0, unlockLv:0, type:'dash',     power:0,   radius:0,   color:'160,240,200', fx:'170,255,210', sub:'255,255,255', trail:'wind',   desc:'身随风走，瞬息掠出两丈并留下残影' },
+  { id:10, name:'剑雨',     key:'雨', mp:24, cd:4.0, unlockLv:0, type:'rain',     power:3.0, radius:220, color:'180,220,255', fx:'185,225,255', sub:'255,255,255', trail:'blade',  hitFx:'burst',  shape:'blade',  desc:'召十二柄飞剑自天而降，插落大圆之内' },
+  { id:11, name:'护体金光', key:'护', mp:20, cd:6.0, unlockLv:0, type:'shield',   power:0.6, radius:0,   color:'255,240,180', fx:'255,230,150', sub:'255,255,240', trail:'halo',   desc:'金光护体，化为六成气血的护盾 8 秒' },
+  { id:12, name:'归一',     key:'归', mp:40, cd:9.0, unlockLv:0, type:'ultimate', power:8.0, radius:320, color:'255,220,160', fx:'255,215,150', sub:'255,255,255', trail:'blade',  hitFx:'burst',  shape:'twin',   desc:'万法归一，双刃交叉斩尽方圆三丈' },
+  { id:13, name:'缩地成寸', key:'缩', mp:8,  cd:2.0, unlockLv:0, type:'teleport', power:0,   radius:200, color:'180,220,255', fx:'190,225,255', sub:'255,255,255', trail:'wind',   desc:'一步缩地乾坤咫尺，残影留于原处' },
+  { id:24, name:'遁光',     key:'遁', mp:20, cd:10.0,unlockLv:18, type:'escape',   power:3.5, radius:0,   color:'255,240,180', fx:'255,235,170', sub:'255,255,255', trail:'halo',   desc:'化金光球冲刺 6 秒，撞碎沿途敌手' }
 ];
 const BIOME_SKILLS = [
-  { id:14, name:'青竹剑意', key:'竹', mp:16, cd:1.5, type:'fan',   power:4.0, radius:240, color:'150,255,180' },
-  { id:15, name:'焚天烈焰', key:'焚', mp:26, cd:2.5, type:'nova',  power:5.0, radius:300, color:'255,120,50'  },
-  { id:16, name:'万木回春', key:'木', mp:24, cd:6.0, type:'heal',  power:0.85,radius:0,   color:'160,255,180' },
-  { id:17, name:'幽冥鬼爪', key:'幽', mp:22, cd:2.0, type:'chain', power:5.0, radius:360, color:'180,120,255' },
-  { id:18, name:'陨星坠落', key:'陨', mp:30, cd:3.5, type:'rain',  power:6.0, radius:280, color:'255,180,100' },
-  { id:19, name:'极寒冰爆', key:'寒', mp:24, cd:3.0, type:'nova',  power:4.2, radius:320, color:'180,240,255', freeze:3.5 },
-  { id:20, name:'碧海潮生', key:'海', mp:26, cd:2.5, type:'nova',  power:4.5, radius:260, color:'120,220,255' },
-  { id:21, name:'金阙天雷', key:'阙', mp:28, cd:2.5, type:'chain', power:6.5, radius:420, color:'255,220,120' },
-  { id:22, name:'血魔噬天', key:'噬', mp:32, cd:3.5, type:'domain',power:2.8, radius:300, color:'255,80,120' },
-  { id:23, name:'星河倒灌', key:'星', mp:36, cd:4.0, type:'rain',  power:5.5, radius:320, color:'220,180,255' }
+  { id:14, name:'青竹剑意', key:'竹', mp:16, cd:1.5, type:'fan',   power:4.0, radius:240, color:'150,255,180', fx:'140,250,170', sub:'235,255,235', trail:'leaf',    hitFx:'leaf',   shape:'arc',    desc:'竹林剑意，剑气如竹叶纷飞' },
+  { id:15, name:'焚天烈焰', key:'焚', mp:26, cd:2.5, type:'nova',  power:5.0, radius:300, color:'255,120,50',  fx:'255,90,30',   sub:'255,230,120', trail:'fire',    hitFx:'burn',   shape:'nova',   desc:'烈焰焚天，足下涌起三丈火柱' },
+  { id:16, name:'万木回春', key:'木', mp:24, cd:6.0, type:'heal',  power:0.85,radius:0,   color:'160,255,180', fx:'150,255,170', sub:'240,255,220', trail:'leaf',    desc:'万千草木生机灌注，气血回满八成' },
+  { id:17, name:'幽冥鬼爪', key:'幽', mp:22, cd:2.0, type:'chain', power:5.0, radius:360, color:'180,120,255', fx:'175,110,255', sub:'255,210,255', trail:'ghost',   hitFx:'shadow', desc:'幽冥阴气凝爪，连锁撕扯五名敌人' },
+  { id:18, name:'陨星坠落', key:'陨', mp:30, cd:3.5, type:'rain',  power:6.0, radius:280, color:'255,180,100', fx:'255,160,70',  sub:'255,240,190', trail:'fire',    hitFx:'burn',   shape:'meteor', desc:'召陨星十二颗自天穹轰落' },
+  { id:19, name:'极寒冰爆', key:'寒', mp:24, cd:3.0, type:'nova',  power:4.2, radius:320, color:'180,240,255', fx:'170,235,255', sub:'240,252,255', trail:'frost',   hitFx:'frost',  shape:'nova', freeze:3.5, desc:'极寒之炁爆开，冰封 3.5 秒' },
+  { id:20, name:'碧海潮生', key:'海', mp:26, cd:2.5, type:'nova',  power:4.5, radius:260, color:'120,220,255', fx:'100,210,255', sub:'220,250,255', trail:'water',   hitFx:'burst',  shape:'nova',   desc:'潮汐自剑尖涌出，一轮又一轮拍击' },
+  { id:21, name:'金阙天雷', key:'阙', mp:28, cd:2.5, type:'chain', power:6.5, radius:420, color:'255,220,120', fx:'255,210,90',  sub:'255,255,240', trail:'thunder', hitFx:'spark',  desc:'金阙天雷，大道威压连锁贯落' },
+  { id:22, name:'血魔噬天', key:'噬', mp:32, cd:3.5, type:'domain',power:2.8, radius:300, color:'255,80,120',  fx:'255,60,100',  sub:'255,220,230', trail:'blood',   shape:'domain', desc:'血魔领域，吞噬气血以反哺己身' },
+  { id:23, name:'星河倒灌', key:'星', mp:36, cd:4.0, type:'rain',  power:5.5, radius:320, color:'220,180,255', fx:'210,170,255', sub:'255,250,255', trail:'star',    hitFx:'burst',  shape:'meteor', desc:'牵动星河，星光如瀑倒灌大地' }
 ];
 const SKILL_LIBRARY = {};
 [...BASE_SKILLS, ...EXTRA_SKILLS, ...BIOME_SKILLS].forEach(sk => { SKILL_LIBRARY[sk.id] = sk; });
@@ -491,6 +547,7 @@ const G = {
   unlockedSkills: new Set(),
   weapons: new Set([0]),
   currentWeapon: 0,
+  seenBiomes: new Set([0]),
   cd: {}, atkCd: 0
 };
 const totalLv   = () => G.realm * 9 + G.layer - 1;
@@ -634,50 +691,29 @@ const ENEMY_TYPES = [
   { kind:'assassin',  name:'幽冥刺客', color:'#2a2a3a', glow:'rgba(150,80,200,.5)',  isHuman:true, spellType:'blink' }
 ];
 
-/* ============ 妖王神通 · 地面预警 ============ */
 const hazards = [];
 
 const BOSS_SKILLS = [
-  [ // 0 翠竹妖王
-    { name:'竹刺穿心', pattern:'line', n:5,  dmg:1.5, delay:0.8,  radius:62, color:'150,255,140', cd:6.5 },
-    { name:'万竹囚笼', pattern:'ring', n:10, dmg:1.3, delay:1.0,  radius:70, color:'120,240,120', cd:10 }
-  ],
-  [ // 1 赤焰妖王
-    { name:'熔岩喷发', pattern:'burst', n:3, dmg:1.6, delay:0.9, radius:82, color:'255,140,60', cd:6 },
-    { name:'天火坠',   pattern:'rain',  n:9, dmg:1.4, delay:1.2, radius:72, color:'255,110,40', cd:9 }
-  ],
-  [ // 2 千年树妖
-    { name:'缠根',     pattern:'burst', n:2, dmg:1.5, delay:1.1, radius:95, color:'160,255,120', cd:7 },
-    { name:'万木回春', pattern:'summon',dmg:0,   delay:0.6, radius:0,  color:'140,255,180', cd:12 }
-  ],
-  [ // 3 幽冥魔将
-    { name:'幽冥突袭', pattern:'blinkburst', n:1, dmg:2.2, delay:0.55, radius:130, color:'180,120,255', cd:6.5 },
-    { name:'鬼爪阵',   pattern:'line', n:4, dmg:1.6, delay:0.8, radius:70, color:'190,130,255', cd:9 }
-  ],
-  [ // 4 陨星魔将
-    { name:'陨石雨',   pattern:'rain',  n:10, dmg:1.6, delay:1.4, radius:70, color:'255,190,90', cd:9 },
-    { name:'流沙',     pattern:'vortex',dmg:1.3, delay:0.8, radius:120, color:'255,210,130', cd:8 }
-  ],
-  [ // 5 冰魄妖王
-    { name:'极寒冰爆', pattern:'nova',  dmg:1.7, delay:0.6, radius:0,   color:'180,240,255', cd:7, freeze:1.2 },
-    { name:'冰锥阵',   pattern:'ring',  n:8,  dmg:1.4, delay:0.95, radius:70, color:'170,235,255', cd:10 }
-  ],
-  [ // 6 碧海妖王
-    { name:'潮汐冲击', pattern:'nova',  dmg:1.5, delay:0.6, radius:0,   color:'120,220,255', cd:7 },
-    { name:'深海漩涡', pattern:'vortex',dmg:1.3, delay:0.9, radius:140, color:'110,210,255', cd:9 }
-  ],
-  [ // 7 金甲神将
-    { name:'金光剑阵', pattern:'ring',  n:12, dmg:1.5, delay:0.9, radius:66, color:'255,220,120', cd:9 },
-    { name:'天雷贯日', pattern:'line',  n:6, dmg:1.7, delay:0.75, radius:68, color:'255,235,150', cd:7 }
-  ],
-  [ // 8 血魔老祖
-    { name:'血池炼魂', pattern:'burst', n:3, dmg:1.7, delay:1.0, radius:90, color:'255,60,90', cd:8, heal:0.06 },
-    { name:'血雨',     pattern:'rain',  n:8, dmg:1.5, delay:1.3, radius:74, color:'255,50,80', cd:9 }
-  ],
-  [ // 9 星河尊者
-    { name:'星河坠落', pattern:'rain',  n:11, dmg:1.6, delay:1.5, radius:72, color:'220,190,255', cd:9 },
-    { name:'虚空牵引', pattern:'vortex',dmg:1.4, delay:0.9, radius:150, color:'200,170,255', cd:8 }
-  ]
+  [ { name:'竹刺穿心', pattern:'line', n:5,  dmg:1.5, delay:0.8,  radius:62, color:'150,255,140', cd:6.5 },
+    { name:'万竹囚笼', pattern:'ring', n:10, dmg:1.3, delay:1.0,  radius:70, color:'120,240,120', cd:10 } ],
+  [ { name:'熔岩喷发', pattern:'burst', n:3, dmg:1.6, delay:0.9, radius:82, color:'255,140,60', cd:6 },
+    { name:'天火坠',   pattern:'rain',  n:9, dmg:1.4, delay:1.2, radius:72, color:'255,110,40', cd:9 } ],
+  [ { name:'缠根',     pattern:'burst', n:2, dmg:1.5, delay:1.1, radius:95, color:'160,255,120', cd:7 },
+    { name:'万木回春', pattern:'summon',dmg:0,   delay:0.6, radius:0,  color:'140,255,180', cd:12 } ],
+  [ { name:'幽冥突袭', pattern:'blinkburst', n:1, dmg:2.2, delay:0.55, radius:130, color:'180,120,255', cd:6.5 },
+    { name:'鬼爪阵',   pattern:'line', n:4, dmg:1.6, delay:0.8, radius:70, color:'190,130,255', cd:9 } ],
+  [ { name:'陨石雨',   pattern:'rain',  n:10, dmg:1.6, delay:1.4, radius:70, color:'255,190,90', cd:9 },
+    { name:'流沙',     pattern:'vortex',dmg:1.3, delay:0.8, radius:120, color:'255,210,130', cd:8 } ],
+  [ { name:'极寒冰爆', pattern:'nova',  dmg:1.7, delay:0.6, radius:0,   color:'180,240,255', cd:7, freeze:1.2 },
+    { name:'冰锥阵',   pattern:'ring',  n:8,  dmg:1.4, delay:0.95, radius:70, color:'170,235,255', cd:10 } ],
+  [ { name:'潮汐冲击', pattern:'nova',  dmg:1.5, delay:0.6, radius:0,   color:'120,220,255', cd:7 },
+    { name:'深海漩涡', pattern:'vortex',dmg:1.3, delay:0.9, radius:140, color:'110,210,255', cd:9 } ],
+  [ { name:'金光剑阵', pattern:'ring',  n:12, dmg:1.5, delay:0.9, radius:66, color:'255,220,120', cd:9 },
+    { name:'天雷贯日', pattern:'line',  n:6, dmg:1.7, delay:0.75, radius:68, color:'255,235,150', cd:7 } ],
+  [ { name:'血池炼魂', pattern:'burst', n:3, dmg:1.7, delay:1.0, radius:90, color:'255,60,90', cd:8, heal:0.06 },
+    { name:'血雨',     pattern:'rain',  n:8, dmg:1.5, delay:1.3, radius:74, color:'255,50,80', cd:9 } ],
+  [ { name:'星河坠落', pattern:'rain',  n:11, dmg:1.6, delay:1.5, radius:72, color:'220,190,255', cd:9 },
+    { name:'虚空牵引', pattern:'vortex',dmg:1.4, delay:0.9, radius:150, color:'200,170,255', cd:8 } ]
 ];
 
 function addHazard(x, y, r, t, dmg, color){
@@ -840,6 +876,15 @@ function drawHazards(){
   }
   ctx.globalAlpha = 1;
 }
+function curBiome(){ return BIOMES[state.biome] || BIOMES[0]; }
+function curDiff(){ const b = curBiome(); return b.power || 1; }
+const diffLabel = bi => (bi + 1) + ' 阶 · ' + (DIFFICULTY_NAMES[bi] || '太虚');
+const enemyAtkMul = () => curDiff() * (1 + G.realm * 0.04);
+const hexToRgb = h => {
+  const s = String(h || '').replace('#', '');
+  return s.length >= 6 ? parseInt(s.substr(0,2),16) + ',' + parseInt(s.substr(2,2),16) + ',' + parseInt(s.substr(4,2),16) : '200,200,200';
+};
+
 function spawnMinion(){
   const ang = Math.random() * Math.PI * 2;
   const dist = rnd(560, 1400);
@@ -847,16 +892,23 @@ function spawnMinion(){
   const y = P.y + Math.sin(ang) * dist;
   const lv = totalLv();
   const s = Math.pow(1.30, lv);
+  const bio = curBiome();
+  const pw = bio.power || 1, hpm = bio.hp || 1, rw = bio.reward == null ? 0.6 : bio.reward;
   const t = ENEMY_TYPES[Math.floor(Math.random()*ENEMY_TYPES.length)];
   const isHuman = !!t.isHuman;
+  const refined = Math.random() < (bio.elite || 0) && !isHuman;
+  const em = refined ? 1.85 : 1;
+  const maxHp = Math.floor(80*s*hpm*(isHuman?1.3:1)*em*0.92);
   state.enemies.push({
-    x, y, r: isHuman ? 18 : 16, seed: Math.random()*100,
+    x, y, r: (isHuman ? 18 : 16) * (refined ? 1.3 : 1), seed: Math.random()*100,
     kind: t.kind, name: t.name, color: t.color, glow: t.glow, elite: false,
+    refined, rgb: hexToRgb(t.color),
     isHuman, spellType: t.spellType,
-    maxHp: Math.floor(80*s*(isHuman?1.3:1)), hp: Math.floor(80*s*(isHuman?1.3:1)),
-    atk: Math.floor(10*s*(isHuman?1.15:1)), def: Math.floor(5*s),
-    rewardQi: Math.floor(qiNeed()*(isHuman?0.9:0.6)),
-    rewardStones: Math.floor(4*Math.pow(1.2, lv)*(isHuman?1.5:1)) + 1,
+    maxHp, hp: maxHp,
+    atk: Math.floor(10*s*pw*(isHuman?1.15:1)*(refined ? 1.25 : 1)),
+    def: Math.floor(5*s*Math.min(3.2, Math.sqrt(pw))),
+    rewardQi: Math.floor(qiNeed() * rw * 0.60 * (isHuman ? 1.08 : 1) * (refined ? 1.30 : 1)),
+    rewardStones: Math.floor(4*Math.pow(1.2, lv)*(isHuman?1.5:1)*em) + 1,
     chasing:false, wanderT:0, wanderDir:0, wanderMove:false,
     calmUntil:0, atkCd:1.2, hitFlash:0, dead:false, deadTimer:0,
     frozen:0, abilityCd:0, breath:Math.random()*10, spawnParticleT: 0,
@@ -870,14 +922,19 @@ function spawnBoss(){
   const y = P.y + Math.sin(ang) * dist;
   const lv = totalLv();
   const s = Math.pow(1.30, lv);
+  const bio = curBiome();
+  const pw = bio.power || 1, hpm = bio.hp || 1, rw = bio.reward == null ? 0.6 : bio.reward;
   const t = BOSS_BY_BIOME[state.biome] || BOSS_BY_BIOME[0];
+  const bossHp = Math.floor(80*s*hpm*6.2);
   state.enemies.push({
     x, y, r: 78, seed: Math.random()*100,
     kind: t.kind, name: t.name, color: t.color, glow: t.glow, elite: true,
-    maxHp: Math.floor(80*s*6.2), hp: Math.floor(80*s*6.2),
-    atk: Math.floor(10*s*1.9), def: Math.floor(5*s*2.0),
-    rewardQi: Math.floor(qiNeed()*3.8),
-    rewardStones: Math.floor(4*Math.pow(1.2, lv)*8) + 1,
+    rgb: hexToRgb(t.color),
+    maxHp: bossHp, hp: bossHp,
+    atk: Math.floor(10*s*pw*1.9),
+    def: Math.floor(5*s*Math.min(4.5, 1.2 + pw * 0.62)),
+    rewardQi: Math.floor(qiNeed()*rw*3.0),
+    rewardStones: Math.floor(4*Math.pow(1.2, lv)*6) + 1,
     chasing:false, wanderT:0, wanderDir:0, wanderMove:false,
     calmUntil:0, atkCd:1.4, hitFlash:0, dead:false, deadTimer:0,
     frozen:0, abilityCd:3.5, breath:Math.random()*10, spawnParticleT: 0, spellCd: 0,
@@ -885,7 +942,14 @@ function spawnBoss(){
   });
   addFloat(x, y - 150, '⚔ 妖王现身 ⚔', '#ffb8c8', true);
   toast('【' + t.name + '】现身！');
-  shake(6, 0.4);
+  effects.push({ type:'ring', x, y, maxR:260, color:'255,120,150', life:0.9, maxLife:0.9 });
+  effects.push({ type:'shockwave', x, y, maxR:340, color:'255,80,120', life:0.7, maxLife:0.7, width:14 });
+  for(let i = 0; i < 26; i++){
+    const a = rnd(0, Math.PI*2), sp = rnd(120, 320);
+    addParticle(x, y, { vx: Math.cos(a)*sp, vy: Math.sin(a)*sp*0.6 - 60,
+      life: rnd(0.4,0.9), size: rnd(3,7), color:'255,140,160', type:'spark', angle:a, drag:0.9 });
+  }
+  shake(7, 0.4);
 }
 function maintainEnemies(){
   for(let i = state.enemies.length-1; i >= 0; i--){
@@ -896,14 +960,15 @@ function maintainEnemies(){
   const alive = state.enemies.filter(e => !e.dead);
   const bossCount = alive.filter(e => e.elite).length;
   const minionCount = alive.length - bossCount;
-  const wantMinions = 26 + G.realm * 3;
+  const bio = curBiome();
+  const wantMinions = Math.max(4, Math.round((8 + G.realm * 1.4) * (bio.dens || 1)));
   if(minionCount < wantMinions && state.t > state.nextSpawnT){
     spawnMinion();
-    state.nextSpawnT = state.t + 0.16;
+    state.nextSpawnT = state.t + 0.85;
   }
-  if(bossCount < 1 && state.t > state.nextBossT && G.realm >= 1){
+  if(bossCount < 1 && state.t > state.nextBossT && G.realm >= 1 && state.grace <= 0){
     spawnBoss();
-    state.nextBossT = state.t + rnd(35, 50);
+    state.nextBossT = state.t + rnd(45, 60);
   }
 }
 function spawnHerb(){
@@ -923,7 +988,6 @@ function maintainHerbs(){
   }
 }
 
-/* ============ 散落建筑群落 ============ */
 const BUILD_STYLES = [
   { wall:'#9a8a5e', wallDark:'#6c5c3a', roof:'#2f6b3d', roofDark:'#1e4529',
     roofEdge:'#5aa062', roofShape:'gable', trim:'#c8a45c',
@@ -980,7 +1044,6 @@ const BUILD_STYLES = [
 const SITE_CELL = 640;
 const siteCache = new Map();
 
-/* 各类建筑基准尺寸（与绘制比例 r / 60 对应） */
 const KIND_R = {
   house:60, watch:74, wall:60, gate:88, market:54, well:42, statue:46,
   banner:32, pavilion:62, forge:58, granary:58, lantern:38, fence:48,
@@ -1000,7 +1063,6 @@ const TOWN_KINDS = {
   banner:1, pavilion:1, forge:1, granary:1, lantern:1, fence:1
 };
 
-/* 各域人文建筑池 */
 const BIOME_SITE_KINDS = [
   ['house','house','market','pavilion','well','lantern','banner','shrineSmall','stoneLantern','bambooBridge','windChime','pagoda'],
   ['house','house','forge','watch','market','well','lantern','flameTotem','fireBasin','obsidianPillar','lavaForge','volcanoShrine'],
@@ -1030,7 +1092,6 @@ const BIOME_RUIN_KINDS = [
   ['demonTower','demonGate','thornPillar','skullThrone','wall'],
   ['starAltar','voidGate','starTower','constellationRing','wall']
 ];
-/* 各域自然风景：中心景物 + 大型草木山石 */
 const BIOME_SCENERY = [
   { center:'glowPond',  props:['bamboo','bamboo','pine','rock'], n:[10,16], scale:[1.3,2.5] },
   { center:'fireBasin', props:['lavarock','obsidian','ashrock'], n:[8,14],  scale:[1.2,2.2] },
@@ -1052,14 +1113,11 @@ function makeSiteBuilding(x, y, kind, r, bi, rng, cx, cy){
     variant: Math.floor(rng() * 3)
   };
 }
-
-/* 村落里以民居为主，其它为铺面与地标 */
 function pickSiteKind(pool, rng){
   const r = rng();
   if(r < 0.52) return 'house';
   return pool[Math.floor(rng() * pool.length)];
 }
-
 function genVillageSite(bi, cx, cy, rng){
   const pool = BIOME_SITE_KINDS[bi] || BIOME_SITE_KINDS[0];
   const centers = BIOME_SITE_CENTER[bi] || ['well'];
@@ -1358,6 +1416,9 @@ function resolveCollision(o){
 }
 
 const PARTICLE_CAP = 720;
+let FX_SLOW = 1;
+const fxLife = l => (l || 0.4) * FX_SLOW;
+window.__setFxSlow = function(k){ FX_SLOW = k || 1; };
 function addParticle(x, y, o){
   if(!isNum(x) || !isNum(y)) return;
   if(particles.length > PARTICLE_CAP) return;
@@ -1378,6 +1439,57 @@ function updateParticles(dt){
     p.vy += p.gravity * dt;
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.angle += p.spin * dt;
+  }
+}
+function fxRing(x, y, r, color, life, width){
+  effects.push({ type:'ring', x, y, maxR:r, color, life:fxLife(life||0.45), maxLife:fxLife(life||0.45), width: width||3 });
+}
+function fxShock(x, y, r, color, life, width){
+  effects.push({ type:'shockwave', x, y, maxR:r, color, life:fxLife(life||0.5), maxLife:fxLife(life||0.5), width:width||8 });
+}
+function fxSlash(x, y, angle, len, color, life, thin){
+  effects.push({ type:'slash', x, y, angle, len, color, life:fxLife(life||0.25), maxLife:fxLife(life||0.25), thin: thin||4 });
+}
+function fxPillar(x, y, r, color, life, w){
+  effects.push({ type:'pillar', x, y, maxR:r, color, life:fxLife(life||0.6), maxLife:fxLife(life||0.6), width:w||26 });
+}
+function fxGlow(x, y, r, color, life){
+  effects.push({ type:'glow', x, y, maxR:r, color, life:fxLife(life||0.4), maxLife:fxLife(life||0.4) });
+}
+function fxRunes(x, y, r, i, color, life, label){
+  effects.push({ type:'runes', x, y, maxR:r, i:i||0, color, life:fxLife(life||0.7), maxLife:fxLife(life||0.7), label: label||'' });
+}
+function fxBurst(x, y, n, speed, color, opt){
+  opt = opt || {};
+  for(let k = 0; k < n; k++){
+    const a = opt.angle != null ? opt.angle + rnd(-(opt.spread||Math.PI), opt.spread||Math.PI) : rnd(0, Math.PI*2);
+    const sp = rnd(speed * 0.4, speed);
+    addParticle(x + rnd(-6,6), y + rnd(-6,6), {
+      vx: Math.cos(a)*sp, vy: Math.sin(a)*sp + (opt.vy || 0),
+      life: rnd((opt.life||0.5)*0.6, opt.life||0.5), size: rnd(2, opt.size||6),
+      color, type: opt.type || 'spark', angle: a, spin: rnd(-14, 14),
+      drag: opt.drag != null ? opt.drag : 0.9, grow: opt.grow || 0, gravity: opt.gravity || 0
+    });
+  }
+}
+const TRAIL_COLORS = {
+  slash:'255,255,255', fire:'255,150,60', frost:'190,240,255', leaf:'150,255,160',
+  thunder:'180,200,255', water:'130,220,255', ghost:'190,130,255', blood:'255,70,100',
+  star:'230,200,255', blade:'200,240,255', halo:'255,230,160', wind:'180,250,220'
+};
+function emitTrail(x, y, angle, sk){
+  if(!sk) return;
+  const t = sk.trail || 'slash';
+  const c = TRAIL_COLORS[t] || sk.fx || '220,240,255';
+  const bl = t === 'blade';
+  for(let k = 0; k < 7; k++){
+    addParticle(x + rnd(-4,4), y + rnd(-4,4), {
+      vx: rnd(-40, 40) - Math.cos(angle) * 80, vy: rnd(-40, 40) - Math.sin(angle) * 80 - 20,
+      life: rnd(0.32, 0.65), size: rnd(3, 9), color: c,
+      type: t === 'fire' ? 'dot' : (bl ? 'spark' : 'line'),
+      angle: bl ? angle : (t === 'wind' ? angle + Math.PI/2 : rnd(0, 6)),
+      drag: 0.9, grow: t === 'fire' ? 4 : 0
+    });
   }
 }
 function addFloat(x, y, text, color, big){
@@ -1406,6 +1518,56 @@ function showBiomeBanner(name){
   el.textContent = name; el.style.opacity = 1;
   clearTimeout(state.biomeBannerT);
   state.biomeBannerT = setTimeout(()=>{ el.style.opacity = 0; }, 2400);
+}
+const unlockTimers = [];
+function clearUnlockTimers(){ while(unlockTimers.length) clearTimeout(unlockTimers.pop()); }
+function showUnlockNote(bi, immediate){
+  const el = $('unlockNote'); if(!el) return;
+  const bio = BIOMES[bi]; if(!bio) return;
+  const boss = BOSS_BY_BIOME[bi];
+  const sk = SKILL_LIBRARY[BIOME_SKILL_ID(bi)];
+  const wp = WEAPON_MAP[bi + 1];
+  el.querySelector('.unName').textContent = bio.name;
+  el.querySelector('.unSub').innerHTML =
+    (immediate ? '此前未至之地' : '境界精进，天地为之开辟') + '<br>' +
+    (bio.desc || '') + '<br>' +
+    '⚔ 妖王：' + (boss ? boss.name : '—') +
+    (sk ? '　·　📜 功法：' + sk.name : '') +
+    (wp ? '　·　🗡 神兵：' + wp.name : '');
+  el.querySelector('.unDiff').textContent = '难度 ' + diffLabel(bi);
+  el.classList.add('show');
+  clearUnlockTimers();
+  unlockTimers.push(setTimeout(()=>{ el.classList.remove('show'); }, 4200));
+  if(!immediate){
+    unlockTimers.push(setTimeout(()=>{
+      if(!state.started) return;
+      showBiomeBanner('新 境 开 启 · ' + bio.name);
+      toast('可按「地 图」前往 · ' + bio.name);
+      screenFlash('rgba(255,235,160,.32)', 700);
+      shake(6, 0.35);
+    }, 3400));
+  }
+}
+function checkBiomeUnlocks(){
+  if(!state.started) return;
+  const lv = totalLv() + 1;
+  let fresh = -1;
+  for(let i = 0; i < BIOMES.length; i++){
+    const req = (BIOMES[i].realmReq || 0) * MAX_LAYER + 1;
+    if(!G.seenBiomes.has(i) && lv >= req){
+      G.seenBiomes.add(i);
+      if(i > 0) fresh = i;
+    }
+  }
+  if(fresh > 0){
+    addFloat(P.x, P.y - 120, '新境 · ' + BIOMES[fresh].name, '#ffd870', true);
+    shake(10, 0.55);
+    fxShock(P.x, P.y, 180, '255,235,160', 0.6, 10);
+    screenFlash('rgba(255,235,160,.32)', 520);
+    toast('境界精进 · 新境「' + BIOMES[fresh].name + '」开启');
+    setTimeout(()=>{ if(state.started) showUnlockNote(fresh, false); }, 350);
+    save();
+  }
 }
 function toast(msg){
   const el = $('toast'); if(!el) return;
@@ -1467,6 +1629,68 @@ function doAttack(){
   shake(1.8);
 }
 
+function dirAngle(){
+  return P.dir === 0 ? Math.PI/2 : P.dir === 1 ? Math.PI : P.dir === 2 ? 0 : -Math.PI/2;
+}
+function nearestEnemy(maxR){
+  let best = null, bd = maxR == null ? 1e9 : maxR;
+  for(const e of state.enemies){
+    if(e.dead) continue;
+    const d = Math.hypot(e.x - P.x, e.y - P.y) - e.r;
+    if(d < bd){ bd = d; best = e; }
+  }
+  return best;
+}
+function inputDir(){
+  let ix = 0, iy = 0;
+  if(keys['a'] || keys['arrowleft'])  ix -= 1;
+  if(keys['d'] || keys['arrowright']) ix += 1;
+  if(keys['w'] || keys['arrowup'])    iy -= 1;
+  if(keys['s'] || keys['arrowdown'])  iy += 1;
+  if(joy.active){ ix += joy.vx; iy += joy.vy; }
+  if(Math.hypot(ix, iy) < 0.1){
+    const a = dirAngle(); ix = Math.cos(a); iy = Math.sin(a);
+  }
+  const len = Math.hypot(ix, iy) || 1;
+  return { x: ix/len, y: iy/len };
+}
+function skillShapeFX(sk, x, y, angle, radius, c, sub){
+  const shape = sk.shape || 'fan';
+  const y0 = y - 26;
+  if(shape === 'twin'){
+    fxSlash(x, y0, angle - 0.55, radius * 1.32, sub, 0.46, 14);
+    fxSlash(x, y0, angle + 0.55, radius * 1.32, c,   0.50, 14);
+    fxSlash(x, y0, angle - 0.34, radius * 1.05, c,   0.40, 8);
+    fxSlash(x, y0, angle + 0.34, radius * 1.05, sub, 0.40, 8);
+    fxRing(x, y, radius * 0.92, c,   0.46, 5);
+    fxRing(x, y, radius * 0.60, sub, 0.34, 3);
+  } else if(shape === 'blade'){
+    fxSlash(x, y0, angle,        radius * 1.15, sub, 0.34, 10);
+    fxSlash(x, y0, angle,        radius * 0.85, c,   0.44, 18);
+    fxSlash(x, y0, angle + 0.10, radius * 0.62, sub, 0.30, 4);
+    fxSlash(x, y0, angle - 0.10, radius * 0.62, c,   0.28, 4);
+  } else if(shape === 'arc'){
+    fxSlash(x, y0, angle,        radius * 1.05, c,   0.36, 12);
+    fxSlash(x, y0, angle,        radius * 0.82, sub, 0.30, 8);
+    fxSlash(x, y0, angle + 0.20, radius * 0.92, c,   0.28, 5);
+    fxSlash(x, y0, angle - 0.20, radius * 0.92, c,   0.28, 5);
+    fxSlash(x, y0, angle + 0.42, radius * 0.70, sub, 0.22, 3);
+    fxSlash(x, y0, angle - 0.42, radius * 0.70, sub, 0.22, 3);
+    fxRing(x, y, radius * 0.36, sub, 0.34, 3);
+  } else if(shape === 'meteor'){
+    fxRing(x, y, radius * 0.55, c, 0.36, 4);
+    for(let k = 0; k < 4; k++){
+      const a = k * Math.PI/2 + state.t * 0.4;
+      fxSlash(x, y0, a, radius * 0.7, k % 2 ? c : sub, 0.30, 4);
+    }
+  } else if(shape === 'domain'){
+    fxRing(x, y, radius * 0.9, c, 0.42, 5);
+    fxRing(x, y, radius * 0.6, sub, 0.32, 3);
+  } else {
+    fxRing(x, y, radius, c,   0.40, 5);
+    fxRing(x, y, radius * 0.65, sub, 0.30, 3);
+  }
+}
 function castSkill(slot){
   if(!state.started) return;
   const skillId = G.equipped[slot];
@@ -1478,37 +1702,44 @@ function castSkill(slot){
   G.mp -= sk.mp;
   G.cd[skillId] = sk.cd;
   const c = sk.color;
+  const FX = sk.fx || c;
+  const SUB = sk.sub || '255,255,255';
   const wMul = 1 + (currentWeapon()?.atkBonus || 0) * 0.6;
+  const py0 = P.y - 26;
+  fxGlow(P.x, py0, 46, FX, 0.3);
+  fxRunes(P.x, P.y - 4, 54, sk.id || 0, FX, 0.5, sk.key);
+  fxBurst(P.x, py0, 8, 170, SUB, { size: 4, life: 0.35, drag: 0.86 });
+  if(sk.trail) emitTrail(P.x + Math.cos(dirAngle()) * 26, py0, dirAngle(), sk);
+  const dmgOf = (mul) => G.atk * mul * wMul;
+
   switch(sk.type){
     case 'escape': {
       P.escaping = 6.0;
       P.escapeHit = new Set();
       P.escapeTrail = 0;
       toast('遁光 · 6 秒！');
-      effects.push({ type:'ring', x:P.x, y:P.y, maxR:130, color:c, life:0.7, maxLife:0.7 });
-      effects.push({ type:'shockwave', x:P.x, y:P.y, maxR:160, color:c, life:0.5, maxLife:0.5, width:10 });
+      fxRing(P.x, P.y, 130, c, 0.7, 5);
+      fxShock(P.x, P.y, 160, c, 0.5, 10);
+      fxPillar(P.x, P.y, 70, SUB, 0.5, 22);
+      fxBurst(P.x, py0, 30, 360, SUB, { size: 7, life: 0.6 });
       screenFlash('rgba(255,240,180,.5)', 400);
       shake(5, 0.25);
       break;
     }
     case 'fan': {
-      const dmgMul = (isSwordGod() ? 1.25 : 1) * wMul;
       const radius = sk.radius;
       const halfAngle = Math.PI / 3;
-      let targetAngle = P.dir === 0 ? Math.PI/2 : P.dir === 1 ? Math.PI
-                       : P.dir === 2 ? 0 : -Math.PI/2;
-      let target = null, td = radius + 50;
-      for(const e of state.enemies){
-        if(e.dead) continue;
-        const d = Math.hypot(e.x - P.x, e.y - P.y) - e.r;
-        if(d < td){ td = d; target = e; }
-      }
+      let targetAngle = dirAngle();
+      const target = nearestEnemy(radius + 50);
       if(target){
         targetAngle = Math.atan2(target.y - P.y, target.x - P.x);
         if(Math.abs(Math.cos(targetAngle)) >= Math.abs(Math.sin(targetAngle)))
           P.dir = Math.cos(targetAngle) > 0 ? 2 : 1;
         else P.dir = Math.sin(targetAngle) > 0 ? 0 : 3;
       }
+      P.swing = 0.3; P.swingAngle = targetAngle; P.swingSide = -P.swingSide;
+      const dmgMul = (isSwordGod() ? 1.25 : 1) * wMul;
+      let hits = 0;
       for(const e of state.enemies){
         if(e.dead) continue;
         const dx = e.x - P.x, dy = e.y - P.y;
@@ -1517,25 +1748,31 @@ function castSkill(slot){
         let diff = Math.abs(Math.atan2(dy, dx) - targetAngle);
         if(diff > Math.PI) diff = Math.PI*2 - diff;
         if(diff > halfAngle) continue;
-        damageEnemy(e, G.atk * sk.power * dmgMul, targetAngle);
+        damageEnemy(e, G.atk * sk.power * dmgMul, targetAngle, sk); hits++;
       }
-      effects.push({ type:'fan', x:P.x, y:P.y, angle:targetAngle, range:radius, halfAngle,
-        color:c, life:0.28, maxLife:0.28 });
-      effects.push({ type:'shockwave', x:P.x, y:P.y, maxR:radius, color:c,
-        life:0.42, maxLife:0.42, width:6 });
-      shake(3, 0.15);
+      skillShapeFX(sk, P.x, P.y, targetAngle, radius, FX, SUB);
+      fxGlow(P.x, py0, radius * 0.38, SUB, 0.28);
+      fxShock(P.x, P.y, radius * 1.02, c, 0.44, 7);
+      fxShock(P.x, P.y, radius * 0.66, SUB, 0.34, 4);
+      for(let k = 0; k < 22; k++){
+        const a = targetAngle + rnd(-halfAngle, halfAngle);
+        addParticle(P.x + Math.cos(a)*40, py0 + Math.sin(a)*22, {
+          vx: Math.cos(a) * rnd(320, 680), vy: Math.sin(a) * rnd(320, 680) - 40,
+          life: rnd(0.22, 0.5), size: rnd(5, 13), color: k % 3 ? c : SUB,
+          type: 'line', angle: a, drag: 0.93 });
+        if(k % 3 === 0){
+          addParticle(P.x + Math.cos(a)*40, py0 + Math.sin(a)*22, {
+            vx: Math.cos(a) * rnd(60, 140), vy: Math.sin(a) * rnd(60, 140) - 20,
+            life: rnd(0.4, 0.7), size: rnd(3, 6), color: SUB,
+            type: 'spark', angle: a, spin: rnd(-8, 8), drag: 0.9, grow: 2 });
+        }
+      }
+      shake(hits ? 3.5 : 2.5, 0.15);
       break;
     }
     case 'pierce': {
-      let target = null, td = sk.radius;
-      for(const e of state.enemies){
-        if(e.dead) continue;
-        const d = Math.hypot(e.x - P.x, e.y - P.y);
-        if(d < td){ td = d; target = e; }
-      }
-      let angle = P.dir === 0 ? Math.PI/2 : P.dir === 1 ? Math.PI
-                : P.dir === 2 ? 0 : -Math.PI/2;
-      if(target) angle = Math.atan2(target.y - P.y, target.x - P.x);
+      const target = nearestEnemy(sk.radius);
+      const angle = target ? Math.atan2(target.y - P.y, target.x - P.x) : dirAngle();
       const dmgMul = (isSwordGod() ? 1.25 : 1) * wMul;
       const lineWidth = 60;
       for(const e of state.enemies){
@@ -1545,29 +1782,55 @@ function castSkill(slot){
         if(proj < 0 || proj > sk.radius) continue;
         const perp = Math.abs(-dx * Math.sin(angle) + dy * Math.cos(angle));
         if(perp > lineWidth/2 + e.r) continue;
-        damageEnemy(e, G.atk * sk.power * dmgMul, angle);
+        damageEnemy(e, G.atk * sk.power * dmgMul, angle, sk);
       }
       const ex = P.x + Math.cos(angle) * sk.radius;
       const ey = P.y + Math.sin(angle) * sk.radius;
-      effects.push({ type:'beam', x1:P.x, y1:P.y-26, x2:ex, y2:ey-26,
-        color:c, life:0.32, maxLife:0.32, width:lineWidth });
+      effects.push({ type:'beam', x1:P.x, y1:py0, x2:ex, y2:ey - 26,
+        color:SUB, life:0.32, maxLife:0.32, width:lineWidth * 1.35, core:true });
+      effects.push({ type:'beam', x1:P.x, y1:py0, x2:ex, y2:ey - 26,
+        color:FX, life:0.4, maxLife:0.4, width:lineWidth * 0.5 });
+      fxSlash(ex, ey, angle, 70, SUB, 0.3, 8);
+      for(let k = 1; k <= 4; k++){
+        const px2 = P.x + Math.cos(angle) * (sk.radius * 0.22 * k);
+        const py2 = py0 + Math.sin(angle) * (sk.radius * 0.22 * k);
+        fxSlash(px2, py2, angle + Math.PI/2, 50 + k * 14, k % 2 ? SUB : FX, 0.28, 4);
+      }
+      fxRing(ex, ey, 90, c, 0.42, 4);
+      fxShock(ex, ey, 70, SUB, 0.3, 5);
+      for(let k = 0; k < 12; k++){
+        const t = rnd(0.2, 1);
+        addParticle(P.x + Math.cos(angle)*sk.radius*t + rnd(-14,14),
+          py0 + Math.sin(angle)*sk.radius*t + rnd(-10,10), {
+          vx: Math.cos(angle) * rnd(80, 260) + rnd(-60,60), vy: Math.sin(angle) * rnd(80, 260) + rnd(-60,60),
+          life: rnd(0.25, 0.45), size: rnd(4, 9), color: k % 2 ? FX : SUB, type: 'line', angle, drag: 0.9 });
+      }
+      shake(4, 0.18);
       break;
     }
     case 'dash': {
-      let ix = 0, iy = 0;
-      if(keys['a'] || keys['arrowleft'])  ix -= 1;
-      if(keys['d'] || keys['arrowright']) ix += 1;
-      if(keys['w'] || keys['arrowup'])    iy -= 1;
-      if(keys['s'] || keys['arrowdown'])  iy += 1;
-      if(joy.active){ ix += joy.vx; iy += joy.vy; }
-      if(Math.hypot(ix, iy) < 0.1){
-        ix = P.dir === 2 ? 1 : P.dir === 1 ? -1 : 0;
-        iy = P.dir === 0 ? 1 : P.dir === 3 ? -1 : 0;
+      const d = inputDir();
+      const oldX = P.x, oldY = P.y;
+      for(let k = 0; k <= 6; k++){
+        const t = k / 6;
+        effects.push({ type:'ghost', x: oldX + d.x * 220 * t, y: oldY + d.y * 220 * t,
+          color: FX, life: 0.45 + t * 0.2, maxLife: 0.65, kind: P.dir });
       }
-      const len = Math.hypot(ix, iy) || 1;
-      ix /= len; iy /= len;
-      P.x += ix * 220; P.y += iy * 220;
+      fxBurst(oldX, py0, 16, 240, SUB, { angle: Math.atan2(-d.y, -d.x), spread: 0.9, size: 6, life: 0.4 });
+      P.x += d.x * 220; P.y += d.y * 220;
       resolveCollision(P);
+      fxRing(oldX, oldY, 60, c, 0.4, 3);
+      fxRing(P.x, P.y, 50, SUB, 0.35, 3);
+      if(Math.abs(d.x) >= Math.abs(d.y)) P.dir = d.x > 0 ? 2 : 1;
+      else P.dir = d.y > 0 ? 0 : 3;
+      P.anim += 2;
+      for(const e of state.enemies){
+        if(e.dead) continue;
+        if(Math.hypot(e.x - P.x, e.y - P.y) < 62 + e.r){
+          damageEnemy(e, G.atk * 1.4 * wMul, Math.atan2(e.y - oldY, e.x - oldX), sk);
+        }
+      }
+      shake(2.5, 0.12);
       break;
     }
     case 'rain': {
@@ -1575,26 +1838,37 @@ function castSkill(slot){
       const R = sk.radius;
       const dmg = G.atk * sk.power * wMul;
       const count = 12;
+      const meteor = sk.shape === 'meteor';
+      fxRing(centerX, P.y, R, FX, 0.55, 3);
+      fxRunes(centerX, P.y - 6, R * 0.92, (sk.id || 0) + 3, FX, 1.05, sk.key);
       for(let k = 0; k < count; k++){
-        const delay = k * 80;
-        const a = Math.random() * Math.PI * 2;
-        const r = Math.random() * R;
-        const tx = centerX + Math.cos(a) * r;
-        const ty = centerY + Math.sin(a) * r * 0.65;
-        addParticle(tx, ty - 150, { vx: 0, vy: 500, life: 0.3, size: 14,
-          color: c, type: 'line', angle: Math.PI/2, drag: 1 });
-        setTimeout(() => {
-          if(!state.started) return;
-          for(const e of state.enemies){
-            if(e.dead) continue;
-            const dd = Math.hypot(e.x - tx, e.y - ty);
-            if(dd < 60 + e.r){
-              damageEnemy(e, dmg, Math.atan2(e.y - ty, e.x - tx));
+        (function(k){
+          const delay = k * 75;
+          const a = Math.random() * Math.PI * 2;
+          const r = Math.sqrt(Math.random()) * R;
+          const tx = centerX + Math.cos(a) * r;
+          const ty = P.y + Math.sin(a) * r * 0.65;
+          effects.push({ type:'falling', x:tx, y:ty, delay: delay/1000, color: c, sub: SUB,
+            life: 0.55, maxLife: 0.55, meteor, angle: rnd(-0.2, 0.2) });
+          setTimeout(() => {
+            if(!state.started) return;
+            fxRunes(tx, ty + 4, meteor ? 52 : 38, k, FX, 0.5, '');
+            fxPillar(tx, ty, meteor ? 46 : 32, FX, 0.46, meteor ? 36 : 22);
+            fxShock(tx, ty, meteor ? 100 : 70, c, 0.44, meteor ? 12 : 8);
+            fxShock(tx, ty, meteor ? 62 : 44, SUB, 0.32, 4);
+            fxRing(tx, ty, meteor ? 74 : 50, SUB, 0.38, 3);
+            fxBurst(tx, ty, meteor ? 20 : 12, 300, FX, { size: 6, life: 0.5 });
+            fxBurst(tx, ty, 8, 160, SUB, { size: 4, life: 0.45, type: 'dot', grow: 4 });
+            for(const e of state.enemies){
+              if(e.dead) continue;
+              const dd = Math.hypot(e.x - tx, e.y - ty);
+              if(dd < 60 + e.r){
+                damageEnemy(e, dmg, Math.atan2(e.y - ty, e.x - tx), sk);
+              }
             }
-          }
-        }, delay);
+          }, delay);
+        })(k);
       }
-      effects.push({ type:'ring', x:centerX, y:centerY, maxR:R, color:c, life:0.55, maxLife:0.55 });
       shake(5, 0.22);
       break;
     }
@@ -1603,88 +1877,170 @@ function castSkill(slot){
       state.shield = (state.shield || 0) + amount;
       state.shieldTime = 8;
       addFloat(P.x, P.y - 56, '+' + fmt(amount) + ' 护盾', '#ffe070', true);
-      effects.push({ type:'ring', x:P.x, y:P.y, maxR:85, color:c, life:0.6, maxLife:0.6 });
+      fxRing(P.x, P.y, 85, c, 0.6, 4);
+      fxRing(P.x, P.y, 60, SUB, 0.45, 6);
+      fxRunes(P.x, P.y - 6, 52, 5, FX, 0.7, '护');
+      for(let k = 0; k < 22; k++){
+        const a = k / 22 * Math.PI * 2;
+        addParticle(P.x + Math.cos(a)*28, P.y - 26 + Math.sin(a)*22, {
+          vx: Math.cos(a) * 130, vy: Math.sin(a) * 90 - 60,
+          life: 0.5, size: 5, color: SUB, type: 'spark', angle: a, drag: 0.9 });
+      }
       break;
     }
     case 'ultimate': {
       const radius = sk.radius * (isSwordGod() ? 1.2 : 1);
       const dmg = G.atk * sk.power * (isSwordGod() ? 1.3 : 1) * wMul;
+      fxPillar(P.x, P.y, 110, SUB, 0.85, 40);
+      fxPillar(P.x, P.y, 60, FX, 0.6, 70);
+      fxRunes(P.x, P.y - 6, radius * 0.9, 11, FX, 1.0, '归');
+      for(let k = 0; k < 4; k++){
+        const a = k * Math.PI/2 + 0.3;
+        fxSlash(P.x, P.y - 26, a, radius * 1.1, k % 2 ? SUB : FX, 0.55 + k * 0.04, 14);
+      }
+      for(let k = 0; k < 4; k++){
+        const a = k * Math.PI/2 + 0.3 + Math.PI/4;
+        fxSlash(P.x, P.y - 26, a, radius * 0.72, k % 2 ? SUB : FX, 0.62, 10);
+      }
+      fxShock(P.x, P.y, radius * 1.25, SUB, 1.1, 14);
+      fxShock(P.x, P.y, radius * 0.55, c, 0.7, 6);
+      fxRunes(P.x, P.y + 2, radius * 1.05, 12, FX, 1.1, '');
       for(const e of state.enemies){
         if(e.dead) continue;
         const d = Math.hypot(e.x - P.x, e.y - P.y) - e.r;
         if(d > radius) continue;
-        damageEnemy(e, dmg, Math.atan2(e.y - P.y, e.x - P.x));
+        damageEnemy(e, dmg, Math.atan2(e.y - P.y, e.x - P.x), sk);
       }
-      effects.push({ type:'shockwave', x:P.x, y:P.y, maxR:radius, color:c, life:1.0, maxLife:1.0, width:18 });
+      fxShock(P.x, P.y, radius, c, 1.0, 18);
+      fxShock(P.x, P.y, radius * 0.7, SUB, 0.7, 10);
+      fxRing(P.x, P.y, radius * 1.15, FX, 0.9, 6);
+      fxBurst(P.x, py0, 46, 560, FX, { size: 9, life: 0.85 });
+      fxBurst(P.x, py0, 24, 300, SUB, { size: 6, life: 0.7, type: 'dot', grow: 5 });
       shake(14, 0.6);
       screenFlash('rgba(255,240,180,.7)', 600);
       break;
     }
     case 'teleport': {
       const oldX = P.x, oldY = P.y;
-      let ix = 0, iy = 0;
-      if(keys['a'] || keys['arrowleft'])  ix -= 1;
-      if(keys['d'] || keys['arrowright']) ix += 1;
-      if(keys['w'] || keys['arrowup'])    iy -= 1;
-      if(keys['s'] || keys['arrowdown'])  iy += 1;
-      if(joy.active){ ix += joy.vx; iy += joy.vy; }
-      if(Math.hypot(ix, iy) < 0.1){
-        ix = P.dir === 2 ? 1 : P.dir === 1 ? -1 : 0;
-        iy = P.dir === 0 ? 1 : P.dir === 3 ? -1 : 0;
+      const d = inputDir();
+      fxRing(oldX, oldY, 50, c, 0.4, 3);
+      fxBurst(oldX, py0, 14, 220, FX, { size: 5, life: 0.4 });
+      for(let k = 1; k <= 5; k++){
+        effects.push({ type:'ghost', x: oldX + d.x * sk.radius * (k/5), y: oldY + d.y * sk.radius * (k/5),
+          color: FX, life: 0.5 - k * 0.05, maxLife: 0.5, kind: P.dir });
       }
-      const len = Math.hypot(ix, iy) || 1;
-      ix /= len; iy /= len;
-      P.x += ix * sk.radius; P.y += iy * sk.radius;
+      P.x += d.x * sk.radius; P.y += d.y * sk.radius;
       resolveCollision(P);
-      effects.push({ type:'ring', x:oldX, y:oldY, maxR:50, color:c, life:0.4, maxLife:0.4 });
-      effects.push({ type:'ring', x:P.x, y:P.y, maxR:60, color:c, life:0.4, maxLife:0.4 });
+      fxRing(P.x, P.y, 60, SUB, 0.4, 4);
+      fxPillar(P.x, P.y, 44, SUB, 0.4, 16);
+      for(const e of state.enemies){
+        if(e.dead) continue;
+        if(Math.hypot(e.x - P.x, e.y - P.y) < 58 + e.r){
+          damageEnemy(e, G.atk * 2.0 * wMul, Math.atan2(e.y - P.y, e.x - P.x), sk);
+        }
+      }
       break;
     }
     case 'heal': {
       const v = Math.floor(G.maxHp * sk.power);
       G.hp = Math.min(G.maxHp, G.hp + v);
       addFloat(P.x, P.y - 56, '+' + fmt(v), '#89e2ce', true);
-      effects.push({ type:'ring', x:P.x, y:P.y, maxR:95, color:c, life:0.55, maxLife:0.55 });
+      fxRing(P.x, P.y, 95, c, 0.55, 4);
+      fxRunes(P.x, P.y - 6, 60, 2, FX, 0.8, sk.key);
+      for(let k = 0; k < 26; k++){
+        const a = rnd(0, Math.PI*2), rr = rnd(20, 70);
+        addParticle(P.x + Math.cos(a)*rr, P.y + Math.sin(a)*rr*0.6, {
+          vx: -Math.cos(a) * 40, vy: -rnd(60, 150),
+          life: rnd(0.5, 1.0), size: rnd(3, 6), color: k % 2 ? c : SUB,
+          type: 'dot', drag: 0.96, grow: 2 });
+      }
       break;
     }
     case 'fly': {
       P.flying = 8.0;
       toast('御剑飞行 · 8 秒！');
+      fxRing(P.x, P.y, 90, c, 0.6, 4);
+      fxShock(P.x, P.y, 130, SUB, 0.5, 8);
+      for(let k = 0; k < 18; k++){
+        const a = rnd(0, Math.PI*2);
+        addParticle(P.x + Math.cos(a)*30, P.y + Math.sin(a)*16, {
+          vx: Math.cos(a)*rnd(60,180), vy: rnd(-40, 60), life: rnd(0.3,0.6), size: rnd(3,7),
+          color: SUB, type: 'spark', angle: a, drag: 0.92 });
+      }
+      shake(3, 0.15);
       break;
     }
     case 'nova': {
       const radius = sk.radius * (isSwordGod() ? 1.2 : 1);
+      const freeze = sk.freeze;
       for(const e of state.enemies){
         if(e.dead) continue;
         const d = Math.hypot(e.x - P.x, e.y - P.y) - e.r;
         if(d > radius) continue;
         const ang = Math.atan2(e.y - P.y, e.x - P.x);
-        damageEnemy(e, G.atk * sk.power * (isSwordGod() ? 1.25 : 1) * wMul, ang);
-        if(sk.freeze) e.frozen = Math.max(e.frozen || 0, sk.freeze);
+        damageEnemy(e, G.atk * sk.power * (isSwordGod() ? 1.25 : 1) * wMul, ang, sk);
+        if(freeze) e.frozen = Math.max(e.frozen || 0, freeze);
       }
-      effects.push({ type:'shockwave', x:P.x, y:P.y, maxR:radius, color:c, life:0.5, maxLife:0.5, width:9 });
+      fxGlow(P.x, py0, radius * 0.5, SUB, 0.3);
+      fxShock(P.x, py0, radius, c, 0.5, 10);
+      fxShock(P.x, py0, radius * 0.72, SUB, 0.4, 6);
+      fxShock(P.x, py0, radius * 0.42, c, 0.32, 3);
+      fxRing(P.x, P.y, radius, FX, 0.55, 4);
+      skillShapeFX({ shape:'twin' }, P.x, P.y, rnd(0, 3), radius * 0.85, FX, SUB);
+      for(let k = 0; k < 4; k++){
+        const a = k * Math.PI/2 + 0.3 + state.t * 0.2;
+        fxSlash(P.x, py0, a, radius * 0.95, k % 2 ? SUB : FX, 0.42, 8);
+      }
+      fxRunes(P.x, P.y - 6, radius * 0.7, (sk.id || 0), FX, 0.6, '');
+      const isFrost = sk.trail === 'frost' || sk.trail === 'water';
+      for(let k = 0; k < 30; k++){
+        const a = k / 30 * Math.PI * 2 + rnd(-0.1, 0.1);
+        const sp = rnd(240, 520);
+        addParticle(P.x, py0, { vx: Math.cos(a)*sp, vy: Math.sin(a)*sp*0.72 - 20,
+          life: rnd(0.35, 0.65), size: rnd(4, 10), color: k % 3 ? c : SUB,
+          type: isFrost ? 'dot' : 'spark', angle: a, drag: 0.9, grow: isFrost ? 4 : 0 });
+      }
+      if(sk.trail === 'fire'){
+        for(let k = 0; k < 14; k++){
+          const a = rnd(0, Math.PI*2), rr = rnd(40, radius * 0.8);
+          fxGlow(P.x + Math.cos(a)*rr, P.y + Math.sin(a)*rr*0.6, rnd(30, 60), '255,120,40', rnd(0.3, 0.6));
+        }
+      }
+      fxBurst(P.x, py0, 12, 300, FX, { size: 5, life: 0.6, type: 'dot', grow: 6 });
+      if(sk.trail === 'leaf'){
+        for(let k = 0; k < 16; k++){
+          const a = rnd(0, Math.PI*2);
+          addParticle(P.x, py0, { vx: Math.cos(a)*rnd(80,260), vy: Math.sin(a)*rnd(60,200) - 80,
+            life: rnd(0.7, 1.2), size: rnd(3,6), color: k % 2 ? '150,255,160' : SUB, type: 'dot', drag: 0.96, grow: 1 });
+        }
+      }
       shake(8, 0.22);
       break;
     }
     case 'swords': {
       const n = 18;
       const dmg = G.atk * sk.power * wMul;
+      fxRunes(P.x, P.y - 6, 80, 4, FX, 0.7, '阵');
+      fxRing(P.x, P.y, 70, SUB, 0.4, 3);
       for(let k = 0; k < n; k++){
         const a = (k / n) * Math.PI * 2 + rnd(-0.08, 0.08);
         projectiles.push({
           x: P.x + Math.cos(a)*20, y: P.y - 26 + Math.sin(a)*20,
           vx: Math.cos(a) * 620, vy: Math.sin(a) * 620,
           target: null, damage: dmg, life: 1.0,
-          color: c, r: 3, homing: false
+          color: c, r: 3, homing: false, angle: Math.atan2(Math.sin(a), Math.cos(a)),
+          weapon: G.currentWeapon, trailFx: sk.trail, glowColor: SUB
         });
       }
+      emitTrail(P.x, py0, 0, sk);
       shake(5, 0.16);
       break;
     }
     case 'chain': {
-      let curX = P.x, curY = P.y - 26;
+      let curX = P.x, curY = py0;
       let remaining = 5, mul = 1;
       const used = new Set();
+      fxGlow(P.x, py0, 60, SUB, 0.3);
       while(remaining-- > 0){
         let best = null, bd = sk.radius;
         for(const e of state.enemies){
@@ -1695,12 +2051,20 @@ function castSkill(slot){
         if(!best) break;
         used.add(best);
         beams.push({ x1: curX, y1: curY, x2: best.x, y2: best.y - 20,
-          color: c, life: 0.3, maxLife: 0.3, segs: 7, jitter: 14 });
+          color: c, sub: SUB, life: 0.3, maxLife: 0.3, segs: 9, jitter: 16, branch: true });
         const ang = Math.atan2(best.y - curY, best.x - curX);
-        damageEnemy(best, G.atk * sk.power * mul * wMul, ang);
+        damageEnemy(best, G.atk * sk.power * mul * wMul, ang, sk);
+        fxPillar(best.x, best.y, 36, SUB, 0.35, 16);
+        fxRing(best.x, best.y - 20, 56, c, 0.35, 3);
+        fxBurst(best.x, best.y - 20, 12, 260, c,   { size: 5, life: 0.4 });
+        fxBurst(best.x, best.y - 20, 6,  180, SUB, { size: 3, life: 0.3, type:'dot', grow: 3 });
+        fxRing(best.x, best.y - 20, 44, SUB, 0.28, 2.5);
         curX = best.x; curY = best.y - 20; mul *= 0.82;
       }
       if(used.size === 0){ G.mp += sk.mp; G.cd[skillId] = 0.5; return; }
+      else {
+        fxPillar(P.x, P.y, 40, SUB, 0.35, 18);
+      }
       break;
     }
     case 'domain': {
@@ -1709,15 +2073,23 @@ function castSkill(slot){
       state.domainPower = sk.power * wMul;
       state.domainRadius = sk.radius;
       state.domainColor = sk.color;
+      state.domainColorSub = SUB;
+      state.domainTrail = sk.trail;
+      state.domainSkill = sk;
       toast('领域展开！');
+      fxRing(P.x, P.y, sk.radius * 1.1, c, 0.9, 6);
+      fxShock(P.x, P.y, sk.radius * 1.3, SUB, 0.7, 12);
+      fxRunes(P.x, P.y - 6, sk.radius, 7, FX, 1.0, sk.key);
+      fxPillar(P.x, P.y, 80, FX, 0.6, 26);
+      fxBurst(P.x, py0, 34, 420, FX, { size: 7, life: 0.7 });
       shake(9, 0.4);
-      screenFlash('rgba(255,220,140,.5)', 500);
+      screenFlash(sk.trail === 'blood' ? 'rgba(255,60,100,.45)' : 'rgba(255,220,140,.5)', 500);
       break;
     }
   }
 }
 
-function damageEnemy(e, rawAtk, angle){
+function damageEnemy(e, rawAtk, angle, fxCfg){
   if(e.dead) return;
   const dmg = Math.max(1, Math.floor(rawAtk - e.def * 0.6));
   e.hp -= dmg;
@@ -1726,7 +2098,50 @@ function damageEnemy(e, rawAtk, angle){
   const push = e.elite ? 4 : 10;
   e.x += dx * push; e.y += dy * push;
   if(isNum(e.x) && isNum(e.y)) resolveCollision(e);
-  addFloat(e.x + rnd(-6,6), e.y - (e.elite ? 150 : 32), dmg, '#ffe0a0', dmg > G.atk * 2);
+  const crit = dmg > G.atk * 2;
+  addFloat(e.x + rnd(-6,6), e.y - (e.elite ? 150 : 32), dmg, crit ? '#ffd060' : '#ffe0a0', crit);
+  const hx = e.x, hy = e.y - (e.elite ? 60 : 20);
+  const col = fxCfg ? (fxCfg.fx || fxCfg.color) : '255,230,170';
+  const kind = fxCfg && fxCfg.hitFx ? fxCfg.hitFx : 'spark';
+  const cnt = crit ? 12 : 7;
+  for(let k = 0; k < cnt; k++){
+    const a = (angle || 0) + rnd(-1.4, 1.4);
+    const sp = rnd(90, crit ? 380 : 260);
+    addParticle(hx + rnd(-6,6), hy + rnd(-10,10), {
+      vx: Math.cos(a)*sp, vy: Math.sin(a)*sp - 40,
+      life: rnd(0.22, 0.5), size: rnd(2, crit ? 7 : 5),
+      color: col, type: kind === 'frost' ? 'dot' : 'spark',
+      angle: a, spin: rnd(-12,12), drag: 0.88, grow: kind === 'frost' ? 3 : 0
+    });
+  }
+  if(kind === 'frost'){
+    fxPillar(hx, e.y, 22, col, 0.35, 14);
+    fxRing(hx, hy, e.r + 22, '235,252,255', 0.3, 2.5);
+  } else if(kind === 'burn'){
+    for(let k = 0; k < 5; k++){
+      addParticle(hx + rnd(-8,8), hy + rnd(-10,10), { vx: rnd(-30,30), vy: rnd(-140,-60),
+        life: rnd(0.35,0.6), size: rnd(3,6), color: k % 2 ? col : '255,230,140', type: 'dot', drag: 0.95, grow: 4 });
+    }
+    fxGlow(hx, hy, e.r + 34, col, 0.28);
+  } else if(kind === 'shadow'){
+    for(let k = 0; k < 6; k++){
+      const a = rnd(0, Math.PI*2);
+      addParticle(hx, hy, { vx: Math.cos(a)*rnd(60,200), vy: Math.sin(a)*rnd(60,200) - 20,
+        life: rnd(0.3,0.55), size: rnd(3,6), color: col, type: 'dot', drag: 0.92, grow: 3 });
+    }
+    fxSlash(hx, hy, (angle || 0) + Math.PI/2, e.r + 30, col, 0.26, 4);
+    fxSlash(hx, hy, (angle || 0) - Math.PI/2, e.r + 30, col, 0.26, 4);
+  } else if(kind === 'leaf'){
+    for(let k = 0; k < 6; k++){
+      const a = rnd(0, Math.PI*2);
+      addParticle(hx, hy, { vx: Math.cos(a)*rnd(50,170), vy: Math.sin(a)*rnd(50,140) - 60,
+        life: rnd(0.5,0.9), size: rnd(2.5,5), color: k % 2 ? col : '190,255,190', type: 'dot', drag: 0.96, grow: 1 });
+    }
+  } else if(kind === 'burst'){
+    fxGlow(hx, hy, e.r + 26, col, 0.25);
+  }
+  if(crit) fxSlash(hx, hy, angle || 0, e.r + 34, '255,240,190', 0.22, 3);
+  else fxRing(hx, hy, e.r + 14, col, 0.2, 2.5);
   if(e.hp <= 0) killEnemy(e);
 }
 function killEnemy(e){
@@ -1736,6 +2151,18 @@ function killEnemy(e){
   G.qi     += e.rewardQi;
   G.stones += e.rewardStones;
   addFloat(e.x, e.y - (e.elite ? 180 : 44), '修为 +' + fmt(e.rewardQi), '#89e2ce', e.elite);
+  const nP = e.elite ? 46 : (e.refined ? 18 : 12);
+  for(let k = 0; k < nP; k++){
+    const a = rnd(0, Math.PI*2), sp = rnd(50, e.elite ? 300 : 170);
+    addParticle(e.x + rnd(-8,8), e.y - 22 + rnd(-16,16), {
+      vx: Math.cos(a)*sp, vy: Math.sin(a)*sp*0.7 - rnd(30, 120),
+      life: rnd(0.4, 0.9), size: rnd(2, e.elite ? 7 : 4.5),
+      color: k % 3 === 0 ? '137,226,206' : (e.refined ? '255,230,150' : (e.rgb || '200,200,200')),
+      type: k % 2 ? 'dot' : 'spark', angle: a, drag: 0.93, grow: k % 3 === 0 ? 2 : 0
+    });
+  }
+  fxRing(e.x, e.y - 10, e.elite ? 160 : (e.refined ? 70 : 46), '150,240,220',
+    e.elite ? 0.8 : 0.45, e.elite ? 5 : 3);
   if(e.elite){
     const sid = BIOME_SKILL_ID(state.biome);
     if(!G.unlockedSkills.has(sid)){
@@ -1759,18 +2186,33 @@ function killEnemy(e){
 }
 function damagePlayer(e){
   if(state.t < playerInvuln) return;
+  if((P.flying > 0 && Math.random() < 0.3) || P.escaping > 0) return;
   playerInvuln = state.t + 0.5;
-  let dmg = Math.max(1, Math.floor(e.atk - G.def * 0.6));
+  let dmg = Math.max(1, Math.floor(e.atk * enemyAtkMul() - G.def * 0.6));
   if(state.shield > 0){
     const absorbed = Math.min(dmg, state.shield);
     state.shield -= absorbed;
     dmg -= absorbed;
-    if(dmg <= 0) return;
+    if(state.shield <= 0){
+      for(let k = 0; k < 16; k++){
+        const a = rnd(0, Math.PI*2);
+        addParticle(P.x, P.y - 26, { vx: Math.cos(a)*rnd(90,260), vy: Math.sin(a)*rnd(60,200) - 40,
+          life: rnd(0.3,0.6), size: rnd(2,5), color:'255,236,160', type:'spark', angle:a, drag:0.9 });
+      }
+      fxRing(P.x, P.y - 10, 90, '255,236,160', 0.4, 3);
+    }
+    if(dmg <= 0){ addFloat(P.x, P.y - 52, '格挡', '#ffe070', false); return; }
   }
   G.hp -= dmg;
   addFloat(P.x, P.y - 52, dmg, '#ff6b5a');
   shake(5, 0.14);
   hurtFlash();
+  for(let k = 0; k < 7; k++){
+    const a = rnd(0, Math.PI*2);
+    addParticle(P.x, P.y - 28, { vx: Math.cos(a)*rnd(40,150), vy: Math.sin(a)*rnd(30,120) - 30,
+      life: rnd(0.25,0.5), size: rnd(2,4), color:'255,90,70', type:'spark', angle:a, drag:0.88 });
+  }
+  fxShock(P.x, P.y - 20, 52, '255,90,80', 0.25, 4);
   const dx = P.x - e.x, dy = P.y - e.y;
   const d = Math.hypot(dx, dy) || 1;
   P.x += dx/d * 16; P.y += dy/d * 16;
@@ -1815,12 +2257,20 @@ function updateSwordArray(dt){
   const dx = target.x - sx, dy = (target.y - 20) - sy;
   const d = Math.hypot(dx, dy) || 1;
   const dmgBase = G.atk * (isSwordGod() ? 1.2 : 0.8) * weaponAtkMul();
+  const w = currentWeapon() || WEAPONS[0];
   projectiles.push({
     x: sx, y: sy, vx: dx/d * 720, vy: dy/d * 720,
     target, damage: dmgBase,
-    life: 1.8, color: isSwordGod() ? '255,220,120' : '150,230,255',
-    r: 3, homing: true, isArray: true
+    life: 1.8, color: isSwordGod() ? '255,220,120' : w.color,
+    r: 3, homing: true, isArray: true,
+    angle: Math.atan2(dy, dx) + Math.PI/2, weapon: w.id,
+    glowColor: isSwordGod() ? '255,235,170' : '255,255,255'
   });
+  for(let k = 0; k < 4; k++){
+    addParticle(sx, sy, { vx: -Math.cos(ang) * rnd(20, 70) + rnd(-30,30), vy: -Math.sin(ang)*rnd(10,40),
+      life: 0.3, size: rnd(3, 6), color: isSwordGod() ? '255,235,170' : w.color,
+      type: 'dot', drag: 0.9, grow: 2 });
+  }
   state.swordCd = state.t + (isSwordGod() ? 0.3 : totalLv() >= 27 ? 0.42 : 0.5);
 }
 function updateProjectiles(dt){
@@ -1837,6 +2287,11 @@ function updateProjectiles(dt){
       pr.vy += (dy/d*sp - pr.vy) * Math.min(1, dt*8);
     }
     pr.x += pr.vx * dt; pr.y += pr.vy * dt;
+    if(pr.homing && Math.random() < 0.75){
+      addParticle(pr.x + rnd(-3,3), pr.y + rnd(-3,3), {
+        vx: -pr.vx * 0.05 + rnd(-15,15), vy: -pr.vy * 0.05 + rnd(-15,15),
+        life: 0.28, size: rnd(2.5, 5), color: pr.glowColor || pr.color, type: 'dot', drag: 0.9, grow: 1 });
+    }
     if(pr.isEnemy){
       if(Math.hypot(P.x - pr.x, (P.y - 26) - pr.y) < 24 + pr.r){
         damagePlayer({ atk: pr.damage, x: pr.x, y: pr.y });
@@ -1851,15 +2306,30 @@ function updateProjectiles(dt){
       if(Math.hypot(e.x - pr.x, (e.y - 18) - pr.y) < e.r + 18){ hit = e; break; }
     }
     if(hit){
-      damageEnemy(hit, pr.damage, Math.atan2(pr.vy, pr.vx));
+      const ha = Math.atan2(pr.vy, pr.vx);
+      damageEnemy(hit, pr.damage, ha);
+      fxSlash(pr.x, pr.y, ha, 46, pr.glowColor || '255,255,255', 0.22, 4);
+      fxBurst(pr.x, pr.y, 7, 220, pr.color, { size: 4, life: 0.3 });
       projectiles.splice(i,1);
     }
   }
 }
+let domainFxT = 0;
 function updateDomain(dt){
   if(state.domain <= 0) return;
   state.domain -= dt;
   state.domainTick -= dt;
+  domainFxT -= dt;
+  const c = state.domainColor || '255,220,140';
+  const sub = state.domainColorSub || '255,255,255';
+  if(Math.random() < 0.6){
+    const R = state.domainRadius * Math.sqrt(Math.random());
+    const a = rnd(0, Math.PI*2);
+    addParticle(P.x + Math.cos(a) * R, P.y + Math.sin(a) * R * 0.62, {
+      vx: -Math.sin(a) * 120, vy: -Math.cos(a) * 60 - 50,
+      life: rnd(0.3, 0.6), size: rnd(3, 6), color: Math.random() < 0.5 ? c : sub,
+      type: 'dot', drag: 0.94, grow: 1 });
+  }
   if(state.domainTick <= 0){
     state.domainTick = 0.28;
     const R = state.domainRadius;
@@ -1867,8 +2337,14 @@ function updateDomain(dt){
       if(e.dead) continue;
       const d = Math.hypot(e.x - P.x, e.y - P.y) - e.r;
       if(d > R) continue;
-      damageEnemy(e, G.atk * state.domainPower, Math.atan2(e.y - P.y, e.x - P.x));
+      const a = Math.atan2(e.y - P.y, e.x - P.x);
+      damageEnemy(e, G.atk * state.domainPower, a, state.domainSkill || null);
+      fxSlash(e.x, e.y - 20, a + rnd(-0.6, 0.6), 40, sub, 0.25, 3);
+      if(state.domainTrail === 'blood'){
+        G.hp = Math.min(G.maxHp, G.hp + Math.floor(G.maxHp * 0.004));
+      }
     }
+    if(domainFxT <= 0){ domainFxT = 0.56; fxShock(P.x, P.y, R, c, 0.55, 3); }
   }
 }
 
@@ -1899,13 +2375,19 @@ function updatePlayer(dt){
   if(P.flying > 0){
     P.flying = Math.max(0, P.flying - dt);
     P.flyTrail += dt;
-    if(P.flyTrail > 0.03 && P.moving){
+    if(P.flyTrail > 0.03){
       P.flyTrail = 0;
-      addParticle(P.x + rnd(-8,8), P.y + rnd(-4,4), {
-        vx: rnd(-20,20), vy: rnd(-20,20),
-        life: 0.4, size: rnd(2,5), color: '150,230,255',
+      const wc = (currentWeapon() || WEAPONS[0]).color;
+      addParticle(P.x + rnd(-10,10), P.y + rnd(-6,6), {
+        vx: rnd(-25,25), vy: rnd(-25,25),
+        life: 0.45, size: rnd(2,5), color: wc,
         type: 'dot', drag: 0.94
       });
+      if(Math.random() < 0.5){
+        addParticle(P.x + rnd(-16,16), P.y - 6 + rnd(-4,4), {
+          vx: rnd(-40,40), vy: rnd(-10,30), life: 0.3, size: rnd(5,9),
+          color: '235,250,255', type: 'line', angle: rnd(0, 6), drag: 0.9 });
+      }
     }
   }
   if(P.escaping > 0){
@@ -1926,9 +2408,12 @@ function updatePlayer(dt){
       if(d < hitR + e.r){
         P.escapeHit.add(e);
         const dmg = G.atk * 3.5 * weaponAtkMul();
-        damageEnemy(e, dmg, Math.atan2(e.y - P.y, e.x - P.x));
+        const ea = Math.atan2(e.y - P.y, e.x - P.x);
+        damageEnemy(e, dmg, ea, SKILL_LIBRARY[24]);
         effects.push({ type:'shockwave', x:e.x, y:e.y - 20, maxR:180,
           color:'255,240,180', life:0.45, maxLife:0.45, width:8 });
+        fxSlash(e.x, e.y - 20, ea + Math.PI/2, 70, '255,255,240', 0.3, 6);
+        fxPillar(e.x, e.y, 34, '255,245,200', 0.35, 20);
         shake(6, 0.2);
       }
     }
@@ -1955,22 +2440,24 @@ function updateEnemy(e, dt){
   } else if(canChase && d < chaseDist){
     e.chasing = true;
     const atkRange = e.elite ? 110 : (e.isHuman ? 200 : 46);
+    const dm = curDiff();
     if(d > atkRange){
-      const sp = e.elite ? 105 : (e.isHuman ? 85 : 92);
+      const sp = (e.elite ? 105 : (e.isHuman ? 85 : 92)) * (1 + (dm - 1) * 0.11) * (e.refined ? 1.14 : 1);
       e.x += dx/d * sp * dt; e.y += dy/d * sp * dt;
     }
     if(e.isHuman && d < 500){
       e.spellCd -= dt;
       if(e.spellCd <= 0){
-        e.spellCd = rnd(2.5, 4.0);
+        e.spellCd = rnd(2.5, 4.0) * Math.max(0.6, 1 / Math.sqrt(dm));
         castEnemySpell(e, dx, dy, d);
       }
     }
     if(d <= atkRange + 5){
       e.atkCd -= dt;
       if(e.atkCd <= 0){
-        e.atkCd = e.elite ? 1.4 : 1.5;
+        e.atkCd = (e.elite ? 1.4 : 1.5) * Math.max(0.60, 1 / Math.sqrt(dm));
         damagePlayer(e);
+        if(e.refined) fxSlash(P.x, P.y - 26, Math.atan2(dy, dx), 54, '255,200,140', 0.22, 4);
       }
     }
     if(e.elite){
@@ -1986,6 +2473,14 @@ function updateEnemy(e, dt){
       e.skillCd = (e.skillCd == null ? 4 : e.skillCd) - dt;
       if(e.skillCd <= 0 && d < 640){
         castBossSkill(e);
+      }
+      if(Math.random() < 0.3){
+        const a = rnd(0, Math.PI*2), rr = rnd(50, 110);
+        const bsk = SKILL_LIBRARY[BIOME_SKILL_ID(state.biome)];
+        addParticle(e.x + Math.cos(a)*rr, e.y - 40 + Math.sin(a)*rr*0.6, {
+          vx: -Math.cos(a)*30, vy: -rnd(20, 70), life: rnd(0.4, 0.8),
+          size: rnd(3, 7), color: (bsk && bsk.fx) || '255,200,200',
+          type: 'dot', drag: 0.96, grow: 3 });
       }
     }
   } else {
@@ -2032,15 +2527,22 @@ function castEnemySpell(e, dx, dy, d){
       x: e.x, y: e.y - 20,
       vx: Math.cos(angle) * 320, vy: Math.sin(angle) * 320,
       target: null, damage: e.atk * 1.6, life: 2.0,
-      color: '255,140,200', r: 6, isEnemy: true
+      color: '255,140,200', r: 6, isEnemy: true,
+      angle: angle + Math.PI/2, glowColor: '255,200,240'
     });
+    fxGlow(e.x + Math.cos(angle)*24, e.y - 32, 24, '255,150,220', 0.35);
+    fxBurst(e.x + Math.cos(angle)*24, e.y - 32, 6, 160, '255,180,240', { angle, spread: 0.5, size: 4, life: 0.3 });
   } else if(e.spellType === 'blink'){
     if(d > 100 && d < 450){
       const targetX = P.x - dx/d * 60;
       const targetY = P.y - dy/d * 60;
+      const ox = e.x, oy = e.y;
       e.x = targetX; e.y = targetY;
       e.atkCd = 0.3;
-      effects.push({ type:'ring', x:e.x, y:e.y, maxR:60, color:'150,80,200', life:0.4, maxLife:0.4 });
+      fxRing(ox, oy, 60, '150,80,200', 0.4, 3);
+      fxRing(e.x, e.y, 60, '190,130,255', 0.4, 3);
+      effects.push({ type:'ghost', x: ox, y: oy, color:'150,80,200', life:0.5, maxLife:0.5, kind: e.kind });
+      fxBurst(e.x, e.y - 26, 12, 220, '190,130,255', { size: 5, life: 0.4 });
     }
   }
 }
@@ -2133,14 +2635,17 @@ function renderMap(){
     const boss = BOSS_BY_BIOME[i];
     const weapon = WEAPON_MAP[i + 1];
     const weaponOwned = weapon && G.weapons.has(weapon.id);
+    const isNew = unlocked && !G.seenBiomes.has(i);
+    const nextBio = BIOMES[i + 1];
     card.innerHTML = `
       <div class="mcHeader"><span class="mcEmoji">${BIOME_EMOJIS[i] || '🗺️'}</span><span class="mcName">${bio.name}</span></div>
-      <div class="mcReq">需 ${reqName}期${isCurrent ? ' · 当前' : ''}</div>
+      <div class="mcReq">难度 ${diffLabel(i)} · 需 ${reqName}期${isCurrent ? ' · 当前所在' : ''}${isNew ? ' · <b style="color:#ffd870">新</b>' : ''}</div>
       <div class="mcDesc">${bio.desc}</div>
       <div class="mcDesc" style="color:#ffb8c8">妖王 · ${boss ? boss.name : '—'}</div>
-      <div class="mcDesc" style="color:${skillUnlocked?'#89e2ce':'rgba(200,190,170,.45)'}">功法：${skillUnlocked ? '✓ ' + skillName : '未获得'}</div>
-      <div class="mcDesc" style="color:${weaponOwned?'#ffd870':'rgba(200,190,170,.45)'}">神兵：${weaponOwned ? '✓ ' + weapon.name : '未获得'}</div>
-      ${unlocked ? '' : '<div class="mcLock">🔒 境界不足</div>'}
+      <div class="mcDesc" style="color:${skillUnlocked?'#89e2ce':'rgba(200,190,170,.45)'}">功法：${skillUnlocked ? '✓ ' + skillName : '击败妖王可得'}</div>
+      <div class="mcDesc" style="color:${weaponOwned?'#ffd870':'rgba(200,190,170,.45)'}">神兵：${weaponOwned ? '✓ ' + weapon.name : '击败妖王可得'}</div>
+      ${nextBio ? `<div class="mcDesc" style="color:rgba(255,200,120,.5)">下一境 · ${nextBio.name}（${REALM_NAMES[nextBio.realmReq]}期）</div>` : ''}
+      ${unlocked ? '' : `<div class="mcLock">🔒 需 ${REALM_NAMES[bio.realmReq]}期修为</div>`}
     `;
     if(unlocked && !isCurrent) card.onclick = () => teleportToBiome(i);
     else if(isCurrent) card.onclick = () => closeMap();
@@ -2170,6 +2675,7 @@ function teleportToBiome(bi){
   for(let i = 0; i < 5; i++) spawnHerb();
   closeMap();
   showBiomeBanner(bio.name);
+  toast(bio.name + ' · 难度 ' + diffLabel(bi));
   effects.push({ type:'shockwave', x:P.x, y:P.y, maxR:220, color:'200,240,255', life:0.7, maxLife:0.7, width:10 });
   screenFlash('rgba(200,240,255,.5)', 500);
   shake(4, 0.2);
@@ -2254,8 +2760,9 @@ function renderBag(){
     const rgbColor = `rgb(${w.color})`;
     card.innerHTML = `
       <div class="wdot" style="background:${rgbColor};color:${rgbColor}"></div>
-      <div class="wname">${w.name}</div>
-      <div class="wbonus">攻击 +${Math.round(w.atkBonus * 100)}%</div>
+      <div class="wprevWrap"><canvas class="wprev" width="260" height="180"></canvas></div>
+      <div class="wname">${w.name}<span class="wattr">「${w.trail || ''}」</span></div>
+      <div class="wbonus">攻击 +${Math.round(w.atkBonus * 100)}%　·　${w.inscriptions ? '剑铭 ' + w.inscriptions : '素刃'}</div>
       <div class="weffect">${w.desc}</div>
       <div class="wtag">${tag}</div>
     `;
@@ -2267,6 +2774,56 @@ function renderBag(){
       };
     }
     grid.appendChild(card);
+    try { drawWeaponPreview(card.querySelector('.wprev'), w); } catch(e){}
+  }
+  renderBagPreviewTick(grid);
+}
+let bagTick = 0;
+function renderBagPreviewTick(grid){
+  cancelAnimationFrame(bagTick);
+  const step = () => {
+    if(!bagOpen) return;
+    let any = false;
+    grid.querySelectorAll('canvas.wprev').forEach(cv => {
+      const w = WEAPON_MAP[cv.__wid];
+      if(!w) return;
+      any = true;
+      try { drawWeaponPreview(cv, w); } catch(e){}
+    });
+    if(any) bagTick = requestAnimationFrame(step);
+  };
+  bagTick = requestAnimationFrame(step);
+}
+function drawWeaponPreview(cv, w){
+  if(!cv) return;
+  cv.__wid = w.id;
+  cv.dataset.wid = String(w.id);
+  const cw = cv.width, ch = cv.height;
+  cv.clearRect(0, 0, cw, ch);
+  const bg = cv.createRadialGradient(cw/2, ch/2, 6, cw/2, ch/2, cw*0.5);
+  bg.addColorStop(0, `rgba(${w.color},0.18)`);
+  bg.addColorStop(1, 'rgba(0,0,0,0)');
+  cv.fillStyle = bg; cv.fillRect(0, 0, cw, ch);
+  const prev = ctx;
+  ctx = cv;
+  try {
+    ctx.save();
+    ctx.translate(cw/2, ch/2);
+    ctx.rotate(-Math.PI/4 * 0.85);
+    const t = state.t || 0;
+    ctx.shadowColor = `rgba(${w.color},0.9)`;
+    ctx.shadowBlur = 18;
+    drawBladeBody(w, 82, 12.5, t, 1);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    for(let i = 0; i < 7; i++){
+      const a = t * 1.4 + i * Math.PI*2/7;
+      const rr = 70 + Math.sin(t*3 + i)*8;
+      ctx.fillStyle = `rgba(${w.color},${0.35 + 0.4*Math.sin(t*4 + i)})`;
+      ctx.beginPath(); ctx.arc(cw/2 + Math.cos(a)*rr, ch/2 + Math.sin(a)*rr*0.55, 2.2, 0, 7); ctx.fill();
+    }
+  } finally {
+    ctx = prev;
   }
 }
 
@@ -2285,6 +2842,7 @@ function advanceRealm(){
   if(skillBookOpen) renderSkillBook();
   if(bagOpen) renderBag();
   renderHUD(); save();
+  checkBiomeUnlocks();
 }
 
 function drawGround(){
@@ -2625,7 +3183,6 @@ function drawHerb(h){
   ctx.restore();
 }
 
-/* 建筑绘制辅助 */
 function lShadow(rx, ry){
   ctx.fillStyle = 'rgba(0,0,0,.32)';
   ctx.beginPath(); ctx.ellipse(0, 6, rx, ry||14, 0, 0, 7); ctx.fill();
@@ -2719,7 +3276,6 @@ function lLampBody(w, h, c1, c2, glow){
   ctx.closePath(); ctx.fill();
 }
 
-/* ============ 城镇建筑绘制 ============ */
 function bShadow(rx, ry){
   ctx.fillStyle = 'rgba(0,0,0,.30)';
   ctx.beginPath(); ctx.ellipse(0, 4, rx, ry || 12, 0, 0, 7); ctx.fill();
@@ -2847,7 +3403,6 @@ function drawRoof(s, hw, by, rh, t, seed){
     ctx.globalAlpha = 1;
     return;
   }
-  /* gable：翘角重檐 */
   ctx.fillStyle = s.roof;
   ctx.beginPath();
   ctx.moveTo(-hw, by);
@@ -3714,12 +4269,426 @@ function drawLandmark(lm){
   ctx.restore();
 }
 
-/* ============ 玩家绘制（修复版：遁光不 return，光球叠加） ============ */
+function withAlpha(rgb, a){
+  const s = String(rgb || '255,255,255');
+  if(s.charAt(0) === '#') return 'rgba(' + hexToRgb(s) + ',' + a + ')';
+  return 'rgba(' + s + ',' + a + ')';
+}
+function weaponOf(id){
+  return (id != null && WEAPON_MAP[id]) ? WEAPON_MAP[id] : (currentWeapon() || WEAPONS[0]);
+}
+function bladeOutline(edge, halfL, halfW){
+  const P2 = [];
+  const N = 16;
+  switch(edge){
+    case 'flame': {
+      for(let i = 0; i <= N; i++){
+        const t = i / N;
+        const x = -halfL + 2*halfL*t;
+        const flick = Math.sin(t * Math.PI * 5) * halfW * 0.35 * Math.sin(t * Math.PI);
+        P2.push({ x, y: -halfW * (1 - Math.pow(t, 3) * 0.85) - halfW * 0.25 * Math.sin(t*Math.PI*9) * (1-t) - flick * 0.4 });
+      }
+      for(let i = N; i >= 0; i--){
+        const t = i / N;
+        const x = -halfL + 2*halfL*t;
+        P2.push({ x, y: halfW * (1 - Math.pow(t, 2.2) * 0.9) * 0.55 + halfW * 0.18 * Math.sin(t*Math.PI*7) });
+      }
+      break;
+    }
+    case 'spike': {
+      for(let i = 0; i <= N; i++){
+        const t = i / N;
+        const x = -halfL + 2*halfL*t;
+        const jag = (i % 2 === 0 ? 1 : 0.62) * (1 - t * 0.7);
+        P2.push({ x, y: -halfW * jag });
+      }
+      for(let i = N; i >= 0; i--){
+        const t = i / N;
+        const x = -halfL + 2*halfL*t;
+        const jag = (i % 2 === 0 ? 0.55 : 0.85) * (1 - t * 0.75);
+        P2.push({ x, y: halfW * jag });
+      }
+      break;
+    }
+    case 'crystal': {
+      const pts = [[-halfL, -halfW*0.55],[-halfL*0.35,-halfW*1.05],[0,-halfW*0.8],[halfL*0.45,-halfW*0.9],[halfL*0.85,-halfW*0.4],[halfL,0],
+                   [halfL*0.85, halfW*0.45],[halfL*0.4, halfW*0.75],[0, halfW*0.65],[-halfL*0.4, halfW*0.95],[-halfL, halfW*0.5]];
+      for(const q of pts) P2.push({ x:q[0], y:q[1] });
+      break;
+    }
+    case 'wave': {
+      for(let i = 0; i <= N; i++){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: -halfW * (1 - t*t*0.7) + Math.sin(t*Math.PI*3)*halfW*0.22*(1-t) });
+      }
+      for(let i = N; i >= 0; i--){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: halfW * (0.5 - t*0.42) + Math.sin(t*Math.PI*3 + 0.7)*halfW*0.15*(1-t) });
+      }
+      break;
+    }
+    case 'jagged': {
+      for(let i = 0; i <= 12; i++){
+        const t = i / 12;
+        const side = i % 2 === 0 ? 1.15 : 0.75;
+        P2.push({ x: -halfL + 2*halfL*t, y: -halfW * side * (1 - t*0.6) });
+      }
+      for(let i = 12; i >= 0; i--){
+        const t = i / 12;
+        const side = i % 2 === 0 ? 0.95 : 0.6;
+        P2.push({ x: -halfL + 2*halfL*t, y: halfW * side * (1 - t*0.7) });
+      }
+      break;
+    }
+    case 'starlight': {
+      for(let i = 0; i <= N; i++){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: -halfW * Math.pow(1 - t, 0.85) });
+      }
+      for(let i = N; i >= 0; i--){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: halfW * Math.pow(1 - t, 0.85) * 0.75 });
+      }
+      break;
+    }
+    case 'serpent': {
+      for(let i = 0; i <= N; i++){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: -halfW * (1 - Math.pow(t, 2.8)) + Math.sin(t*Math.PI*2.2)*halfW*0.45 });
+      }
+      for(let i = N; i >= 0; i--){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: halfW * (1 - Math.pow(t, 2.8)) * (1 + 0.3*Math.sin(t*Math.PI*2.2)) });
+      }
+      break;
+    }
+    case 'thin': {
+      for(let i = 0; i <= N; i++){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: -halfW * (1 - t) * (1 - Math.pow(t, 5)) - 1 });
+      }
+      for(let i = N; i >= 0; i--){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: halfW * (0.55 - t*0.5) * (1 - Math.pow(t, 5)) + 1 });
+      }
+      break;
+    }
+    default: {
+      for(let i = 0; i <= N; i++){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: -halfW * (1 - Math.pow(t, 6)) });
+      }
+      for(let i = N; i >= 0; i--){
+        const t = i / N;
+        P2.push({ x: -halfL + 2*halfL*t, y: halfW * (0.62 - Math.pow(t, 6) * 0.62) });
+      }
+    }
+  }
+  return P2;
+}
+function drawBladeBody(w, halfL, halfW, t, glow){
+  if(glow == null) glow = 1;
+  const metal = w.metal || ['#6f8da0', '#d8f2ff', '#2f4654'];
+  const edge = w.edge || 'straight';
+  const pts = bladeOutline(edge, halfL, halfW);
+  const mg = ctx.createLinearGradient(-halfW * 1.2, 0, halfW * 1.2, 0);
+  mg.addColorStop(0, metal[2]);
+  mg.addColorStop(0.42, metal[0]);
+  mg.addColorStop(0.62, metal[1]);
+  mg.addColorStop(1, metal[0]);
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for(let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  ctx.fillStyle = mg;
+  ctx.fill();
+  if(glow > 0){
+    ctx.save();
+    ctx.globalAlpha = 0.55 * glow;
+    ctx.shadowColor = `rgba(${w.color},1)`;
+    ctx.shadowBlur = halfW * 2.4;
+    ctx.strokeStyle = `rgba(${w.color},.9)`;
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+    ctx.restore();
+  }
+  /* 剑身灵光罩 */
+  ctx.save();
+  ctx.globalAlpha = 0.22 + 0.12 * Math.sin(t * 2.4 + (w.id || 0));
+  const gd = ctx.createLinearGradient(-halfL, 0, halfL, 0);
+  gd.addColorStop(0,   `rgba(${w.color},0)`);
+  gd.addColorStop(0.4, `rgba(${w.color},0.9)`);
+  gd.addColorStop(0.7, `rgba(${w.color},0.5)`);
+  gd.addColorStop(1,   `rgba(${w.color},0)`);
+  ctx.fillStyle = gd;
+  ctx.beginPath();
+  ctx.moveTo(-halfL * 1.02, -halfW * 1.55);
+  ctx.quadraticCurveTo(0, -halfW * 2.0, halfL * 1.02, -halfW * 0.4);
+  ctx.lineTo(halfL * 1.02,  halfW * 0.4);
+  ctx.quadraticCurveTo(0,  halfW * 1.7, -halfL * 1.02, halfW * 1.4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  /* 刃口高光（右侧） */
+  ctx.strokeStyle = 'rgba(255,255,255,.85)';
+  ctx.lineWidth = Math.max(0.7, halfW * 0.16);
+  ctx.beginPath();
+  const hw = Math.floor(pts.length / 2);
+  ctx.moveTo(pts[0].x + 1, pts[0].y * 0.55);
+  for(let i = 1; i <= hw; i++) ctx.lineTo(pts[i].x, pts[i].y * 0.9);
+  ctx.stroke();
+  /* 剑尖灵光 */
+  const tipC = w.tipColor || w.color;
+  ctx.save();
+  ctx.globalAlpha = 0.75 + 0.25 * Math.sin(t * 5);
+  ctx.fillStyle = `rgba(${tipC},0.95)`;
+  ctx.shadowColor = `rgba(${tipC},1)`;
+  ctx.shadowBlur = halfW * 3.2;
+  ctx.beginPath();
+  ctx.arc(halfL * 0.94, 0, Math.max(0.8, halfW * 0.32), 0, 7);
+  ctx.fill();
+  ctx.restore();
+  /* 血槽（中脊） */
+  ctx.strokeStyle = withAlpha(metal[2], 0.75);
+  ctx.lineWidth = Math.max(0.8, halfW * 0.28);
+  ctx.beginPath();
+  ctx.moveTo(-halfL + halfL * 0.18, halfW * 0.1);
+  ctx.lineTo(halfL * 0.72, halfW * 0.02);
+  ctx.stroke();
+  /* 铭文 */
+  const ins = w.inscriptions || 0;
+  if(ins > 0){
+    ctx.save();
+    const period = 0.5 + Math.sin(t * 4) * 0.5;
+    ctx.strokeStyle = `rgba(${w.color},${0.45 + period * 0.45})`;
+    ctx.lineWidth = Math.max(0.55, halfW * 0.12);
+    ctx.beginPath();
+    for(let i = 0; i < ins; i++){
+      const y = -halfL + halfL * (0.35 + i * 0.6 / Math.max(1, ins - 1));
+      const dir = i % 2 ? 1 : -1;
+      ctx.moveTo(dir * halfW * 0.36, y);
+      ctx.lineTo(-dir * halfW * 0.18, y + halfW * 0.22);
+    }
+    ctx.stroke();
+    /* 铭文发光点（带光晕） */
+    for(let i = 0; i < ins; i++){
+      const y = -halfL + halfL * (0.35 + i * 0.6 / Math.max(1, ins - 1));
+      const ph = (state.t * 0.55 + i * 0.17) % 1;
+      ctx.globalAlpha = Math.max(0, Math.sin(ph * Math.PI)) * 0.95;
+      ctx.fillStyle = `rgba(${w.color},1)`;
+      ctx.shadowColor = `rgba(${w.color},1)`;
+      ctx.shadowBlur = Math.max(4, halfW * 1.4);
+      ctx.beginPath();
+      ctx.arc((i % 2 ? 1 : -1) * halfW * 0.44, y, Math.max(0.8, halfW * 0.16), 0, 7);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+  /* 宝石 */
+  ctx.save();
+  ctx.translate(-halfL - halfW * 0.45, 0);
+  if(w.gem){
+    ctx.fillStyle = w.gem;
+    ctx.shadowColor = w.gem; ctx.shadowBlur = 9;
+    ctx.beginPath(); ctx.arc(0, 0, Math.max(1.6, halfW * 0.5), 0, 7); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    ctx.beginPath(); ctx.arc(-halfW * 0.16, -halfW * 0.16, Math.max(0.6, halfW * 0.16), 0, 7); ctx.fill();
+  }
+  ctx.restore();
+  /* 护手 */
+  drawGuard(w, halfL, halfW, t);
+  /* 剑柄缠绕 */
+  const gripLen = halfL * 0.38;
+  const gx = -halfL - halfW * 0.9 - gripLen;
+  ctx.fillStyle = w.lacquer || '#2a2a2a';
+  ctx.fillRect(gx, -halfW * 0.36, gripLen, halfW * 0.72);
+  ctx.strokeStyle = withAlpha(w.trim || '#c8a45c', 0.85);
+  ctx.lineWidth = Math.max(0.6, halfW * 0.14);
+  for(let i = 0; i < 4; i++){
+    const yy = -halfW * 0.34 + (i + 0.5) * (halfW * 0.72 / 4);
+    ctx.beginPath(); ctx.moveTo(gx + 1, yy - halfW * 0.12); ctx.lineTo(gx + gripLen - 1, yy + halfW * 0.12); ctx.stroke();
+  }
+  /* 尾珠 */
+  ctx.fillStyle = w.trim || '#c8a45c';
+  ctx.beginPath(); ctx.arc(gx - halfW * 0.2, 0, halfW * 0.42, 0, 7); ctx.fill();
+  /* 尾珠灵光 */
+  ctx.save();
+  ctx.globalAlpha = 0.55 + 0.25 * Math.sin(t * 3);
+  ctx.fillStyle = `rgba(${w.color},0.85)`;
+  ctx.shadowColor = `rgba(${w.color},1)`;
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(gx - halfW * 0.2, 0, Math.max(1.2, halfW * 0.22), 0, 7);
+  ctx.fill();
+  ctx.restore();
+  /* 剑穗 */
+  const sw = Math.sin(t * 6 + (w.id || 0)) * halfW * 0.55;
+  ctx.strokeStyle = w.tassel || '#d0a040';
+  ctx.lineWidth = Math.max(0.8, halfW * 0.2);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(gx - halfW * 0.2, halfW * 0.2);
+  ctx.quadraticCurveTo(gx - halfW * 1.1, halfW * 1.0 + sw * 0.4, gx - halfW * 1.5 + sw * 0.3, halfW * 2.1 + sw);
+  ctx.stroke();
+  ctx.lineWidth = Math.max(0.5, halfW * 0.11);
+  ctx.beginPath();
+  ctx.moveTo(gx - halfW * 1.5 + sw * 0.3, halfW * 2.05 + sw);
+  ctx.lineTo(gx - halfW * 1.7 + sw * 0.5, halfW * 2.6 + sw);
+  ctx.moveTo(gx - halfW * 1.45 + sw * 0.3, halfW * 2.05 + sw);
+  ctx.lineTo(gx - halfW * 1.6 + sw * 0.4, halfW * 2.65 + sw * 1.1);
+  ctx.stroke();
+}
+function drawGuard(w, halfL, halfW, t){
+  const trim = w.trim || '#c8a45c';
+  const g = w.guard || 'cross';
+  ctx.save();
+  ctx.translate(-halfL, 0);
+  ctx.fillStyle = trim;
+  const gw = Math.max(1.6, halfW * 0.45);
+  /* 护手光痕 */
+  ctx.save();
+  ctx.globalAlpha = 0.6;
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillRect(-gw * 0.3, -halfW * 1.5, Math.max(0.6, gw * 0.4), halfW * 3.0);
+  ctx.restore();
+  if(g === 'cross'){
+    ctx.fillRect(-gw, -halfW * 1.7, gw, halfW * 3.4);
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    ctx.fillRect(-gw, -halfW * 1.7, gw * 0.4, halfW * 3.4);
+  } else if(g === 'bamboo'){
+    ctx.fillRect(-gw, -halfW * 1.5, gw, halfW * 3.0);
+    ctx.strokeStyle = trim; ctx.lineWidth = Math.max(0.7, halfW*0.18);
+    for(let i = -1; i <= 1; i++){
+      ctx.beginPath(); ctx.moveTo(-gw, i * halfW * 0.55); ctx.lineTo(-gw * 3.2, i * halfW * 1.5); ctx.stroke();
+    }
+    ctx.fillStyle = '#a8e070';
+    for(let i = -1; i <= 1; i++){ ctx.beginPath(); ctx.ellipse(-gw * 3.3, i * halfW * 1.5, halfW*0.55, halfW*0.22, i*0.5, 0, 7); ctx.fill(); }
+  } else if(g === 'wing'){
+    ctx.fillRect(-gw, -halfW * 0.9, gw, halfW * 1.8);
+    for(const s of [-1, 1]){
+      ctx.fillStyle = withAlpha(w.color, 0.95);
+      ctx.beginPath();
+      ctx.moveTo(-gw, 0);
+      ctx.quadraticCurveTo(-gw * 1.5, s * halfW * 1.2, -gw * 3.4, s * halfW * 2.3);
+      ctx.quadraticCurveTo(-gw * 2.0, s * halfW * 1.0, -gw * 0.9, s * halfW * 0.5);
+      ctx.closePath(); ctx.fill();
+    }
+  } else if(g === 'vine'){
+    ctx.fillRect(-gw, -halfW * 1.3, gw, halfW * 2.6);
+    ctx.strokeStyle = trim; ctx.lineWidth = Math.max(0.8, halfW*0.22); ctx.lineCap='round';
+    for(const s of [-1, 1]){
+      ctx.beginPath();
+      ctx.moveTo(-gw, s * halfW * 0.8);
+      ctx.bezierCurveTo(-gw*2, s*halfW*2.2, -gw*1, s*halfW*2.6, -gw*2.6, s*halfW*1.6);
+      ctx.stroke();
+    }
+  } else if(g === 'skull'){
+    ctx.fillRect(-gw, -halfW * 1.2, gw, halfW * 2.4);
+    for(const s of [-1, 1]){
+      ctx.fillStyle = '#d8d0c8';
+      ctx.beginPath(); ctx.arc(-gw * 1.4, s * halfW * 1.35, halfW * 0.62, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(150,80,255,.95)';
+      ctx.beginPath(); ctx.arc(-gw * 1.6, s * halfW * 1.3, halfW * 0.2, 0, 7); ctx.fill();
+    }
+  } else if(g === 'ring'){
+    ctx.strokeStyle = trim; ctx.lineWidth = Math.max(1, halfW*0.3);
+    ctx.beginPath(); ctx.ellipse(-gw*1.6, 0, halfW*0.9, halfW*2.0, 0, 0, 7); ctx.stroke();
+    ctx.fillRect(-gw, -halfW * 0.8, gw, halfW * 1.6);
+  } else if(g === 'snow'){
+    ctx.fillRect(-gw, -halfW * 1.4, gw, halfW * 2.8);
+    ctx.strokeStyle = '#d0f4ff'; ctx.lineWidth = Math.max(0.8, halfW*0.2);
+    for(const s of [-1, 1]){
+      for(let k = 0; k < 3; k++){
+        const a = s * (0.6 + k * 0.45);
+        ctx.beginPath(); ctx.moveTo(-gw, 0);
+        ctx.lineTo(-gw - Math.cos(a - Math.PI/2) * halfW*2.4 * (1 - k*0.15), Math.sin(a - Math.PI/2) * halfW*2.4 * (1 - k*0.15) + Math.sin(t*3+k)*halfW*0.2);
+        ctx.stroke();
+      }
+    }
+  } else if(g === 'wave'){
+    ctx.fillRect(-gw, -halfW * 0.9, gw, halfW * 1.8);
+    ctx.strokeStyle = '#a8ecff'; ctx.lineWidth = Math.max(1, halfW*0.3);
+    for(const s of [-1, 1]){
+      ctx.beginPath();
+      ctx.moveTo(-gw, s * halfW * 0.6);
+      ctx.quadraticCurveTo(-gw*2, s*halfW*1.6 + Math.sin(t*4)*halfW*0.2, -gw*3.6, s*halfW*0.9);
+      ctx.stroke();
+    }
+  } else if(g === 'dragon'){
+    ctx.fillRect(-gw, -halfW * 1.0, gw, halfW * 2.0);
+    ctx.fillStyle = trim;
+    for(const s of [-1, 1]){
+      ctx.beginPath();
+      ctx.moveTo(-gw, 0);
+      ctx.quadraticCurveTo(-gw*2.2, s*halfW*0.6, -gw*2.6, s*halfW*2.2);
+      ctx.quadraticCurveTo(-gw*1.4, s*halfW*1.0, -gw*0.8, s*halfW*0.4);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = '#fff4c0';
+    ctx.beginPath(); ctx.arc(-gw*2.5, -halfW*2.0, halfW*0.25, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-gw*2.5, halfW*2.0, halfW*0.25, 0, 7); ctx.fill();
+  } else if(g === 'demon'){
+    ctx.fillRect(-gw, -halfW * 1.1, gw, halfW * 2.2);
+    ctx.fillStyle = w.color;
+    ctx.beginPath();
+    ctx.moveTo(-gw, -halfW*0.7); ctx.lineTo(-gw*3.0, -halfW*2.7); ctx.lineTo(-gw*1.2, -halfW*1.3); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-gw, halfW*0.7); ctx.lineTo(-gw*3.0, halfW*2.7); ctx.lineTo(-gw*1.2, halfW*1.3); ctx.closePath(); ctx.fill();
+  } else if(g === 'star'){
+    ctx.fillRect(-gw*0.5, -halfW * 0.8, gw, halfW * 1.6);
+    ctx.fillStyle = trim;
+    const R = halfW * 2.1;
+    ctx.beginPath();
+    for(let i = 0; i < 10; i++){
+      const a = -Math.PI/2 + i * Math.PI/5 + t * 0.6;
+      const rr = i % 2 ? R * 0.42 : R;
+      ctx.lineTo(-gw*1.4 + Math.cos(a)*rr, Math.sin(a)*rr);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(230,200,255,.9)';
+    ctx.beginPath(); ctx.arc(-gw*1.4, 0, halfW*0.35, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+function weaponAura(w, x, y, scale, dt){
+  if(!w || !w.aura) return;
+  if(Math.random() > 0.35) return;
+  const a = w.aura;
+  const sx = x + rnd(-8, 8) * scale, sy = y + rnd(-26, 10) * scale;
+  if(a === 'fire' || a === 'ember'){
+    addParticle(sx, sy, { vx: rnd(-20,20), vy: rnd(-90,-40), life: rnd(0.35,0.7), size: rnd(2,4),
+      color: a === 'fire' ? '255,150,60' : '255,200,110', type: 'dot', drag: 0.96, grow: 3 });
+  } else if(a === 'ice'){
+    addParticle(sx, sy, { vx: rnd(-25,25), vy: rnd(-30,25), life: rnd(0.4,0.8), size: rnd(2,3.5),
+      color: '200,245,255', type: 'spark', angle: rnd(0,6), drag: 0.95 });
+  } else if(a === 'leaf'){
+    addParticle(sx, sy, { vx: rnd(-30,30), vy: rnd(-40,-5), life: rnd(0.5,1.0), size: rnd(2.5,4.5),
+      color: '150,255,160', type: 'dot', drag: 0.97, grow: 1 });
+  } else if(a === 'star' || a === 'halo'){
+    addParticle(sx, sy, { vx: rnd(-15,15), vy: rnd(-40,-10), life: rnd(0.5,1.0), size: rnd(1.5,3),
+      color: a === 'star' ? '230,210,255' : '255,236,160', type: 'spark', angle: rnd(0,6), spin: 3, drag: 0.97 });
+  } else if(a === 'ghost'){
+    addParticle(sx, sy, { vx: rnd(-15,15), vy: rnd(-50,-15), life: rnd(0.5,0.9), size: rnd(2.5,5),
+      color: '190,130,255', type: 'dot', drag: 0.97, grow: 2 });
+  } else if(a === 'blood'){
+    addParticle(sx, sy, { vx: rnd(-25,25), vy: rnd(-30,40), life: rnd(0.4,0.7), size: rnd(1.8,3.2),
+      color: '255,60,90', type: 'dot', drag: 0.94 });
+  } else if(a === 'bubble'){
+    addParticle(sx, sy, { vx: rnd(-10,10), vy: rnd(-60,-25), life: rnd(0.5,1.0), size: rnd(2,4),
+      color: '130,220,255', type: 'dot', drag: 0.99, grow: 2 });
+  } else {
+    addParticle(sx, sy, { vx: rnd(-10,10), vy: rnd(-30,-10), life: rnd(0.4,0.8), size: rnd(1.5,3),
+      color: w.color, type: 'dot', drag: 0.97 });
+  }
+}
+
 function drawPlayer(){
+  const w = currentWeapon() || WEAPONS[0];
   ctx.save();
   ctx.translate(P.x, P.y);
-  
-  // 遁光光球效果（叠加在人形之上，不 return）
   if(P.escaping > 0){
     const pulse = 0.9 + Math.sin(state.t*14)*0.1;
     ctx.save();
@@ -3738,92 +4707,110 @@ function drawPlayer(){
     }
     ctx.restore();
   }
-  
-  // 阴影
   ctx.fillStyle = 'rgba(0,0,0,.34)';
   ctx.beginPath(); ctx.ellipse(0, 0, 15, 6, 0, 0, 7); ctx.fill();
-  
-  // 护盾
   if(state.shield > 0){
     const shPulse = 0.7 + Math.sin(state.t*6)*0.3;
     ctx.strokeStyle = `rgba(255,240,150,${0.5*shPulse})`;
     ctx.fillStyle = `rgba(255,240,150,${0.12*shPulse})`;
     ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.arc(0, -26, 40, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.save();
+    ctx.translate(0, -26); ctx.rotate(state.t * 0.8);
+    ctx.strokeStyle = `rgba(255,250,200,${0.35*shPulse})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for(let i = 0; i < 6; i++){
+      const a = i / 6 * Math.PI * 2;
+      const x = Math.cos(a) * 43, y = Math.sin(a) * 43 * 0.95;
+      if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.restore();
   }
-  
-  // 御剑飞行脚下的剑
   if(P.flying > 0){
-    const w0 = currentWeapon() || WEAPONS[0];
-    ctx.save(); ctx.translate(0, 2);
-    ctx.shadowColor = `rgba(${w0.color},1)`; ctx.shadowBlur = 18;
-    ctx.fillStyle = '#e8faff';
-    ctx.beginPath(); ctx.moveTo(-32,0); ctx.lineTo(-6,3); ctx.lineTo(26,0); ctx.lineTo(-6,-3); ctx.closePath(); ctx.fill();
-    ctx.shadowBlur = 0; ctx.restore();
+    ctx.save(); ctx.translate(0, 3); ctx.rotate(-0.05 + Math.sin(state.t*4)*0.04);
+    const flyGlow = 0.8 + Math.sin(state.t*10)*0.2;
+    const fg = ctx.createRadialGradient(0, 0, 2, 0, 0, 46);
+    fg.addColorStop(0, `rgba(${w.color},${0.35*flyGlow})`);
+    fg.addColorStop(1, `rgba(${w.color},0)`);
+    ctx.fillStyle = fg; ctx.beginPath(); ctx.ellipse(0, 0, 46, 16, 0, 0, 7); ctx.fill();
+    ctx.save();
+    ctx.rotate(Math.PI / 2);
+    drawBladeBody(w, 26, 3.4, state.t, flyGlow);
+    ctx.restore();
+    ctx.restore();
   }
-  
-  // 光晕（武器颜色）
-  const w = currentWeapon() || WEAPONS[0];
   const g = ctx.createRadialGradient(0,-30,2,0,-30,42);
   g.addColorStop(0, `rgba(${w.color},.22)`);
   g.addColorStop(0.6,`rgba(${w.color},.08)`);
   g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0,-30,42,0,7); ctx.fill();
-  
-  // 应用飞行/上下浮动偏移
   const bob = P.moving ? Math.abs(Math.sin(P.anim))*3 : 0;
   const flyOffset = P.flying > 0 ? 12 + Math.sin(state.t*14)*3 : 0;
   ctx.translate(0, -flyOffset);
   const y0 = -bob;
-  
-  // 长袍
+  const sway = Math.sin(state.t * 3.2) * 1.6;
   ctx.fillStyle = '#35597e';
   ctx.beginPath();
   ctx.moveTo(-12,-2); ctx.lineTo(12,-2); ctx.lineTo(9,-36+y0); ctx.lineTo(-9,-36+y0);
   ctx.closePath(); ctx.fill();
-  
-  // 衣纹
+  ctx.fillStyle = 'rgba(20,40,64,.55)';
+  ctx.beginPath();
+  ctx.moveTo(-12,-2); ctx.lineTo(-6,-2); ctx.lineTo(-4,-36+y0); ctx.lineTo(-9,-36+y0);
+  ctx.closePath(); ctx.fill();
   ctx.fillStyle = 'rgba(150,210,240,.28)';
   ctx.fillRect(-3.5,-34+y0,7,29);
-  
-  // 腰带
+  ctx.strokeStyle = 'rgba(120,180,215,.35)'; ctx.lineWidth = 1;
+  for(let i = -1; i <= 1; i++){
+    ctx.beginPath(); ctx.moveTo(i*5, -14+y0); ctx.lineTo(i*6, -2); ctx.stroke();
+  }
   ctx.fillStyle = '#c8a45c';
   ctx.fillRect(-11,-16+y0,22,3);
-  
-  // 领口
+  ctx.fillStyle = `rgba(${w.color},.9)`;
+  ctx.beginPath(); ctx.arc(9, -14+y0, 2.4, 0, 7); ctx.fill();
+  ctx.strokeStyle = 'rgba(180,220,245,.55)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-9, -18+y0);
+  ctx.quadraticCurveTo(-16 + sway, -10+y0, -13 + sway*1.5, 2);
+  ctx.stroke();
   ctx.fillStyle = '#e4d4ac';
   ctx.beginPath();
   ctx.moveTo(-6,-36+y0); ctx.lineTo(6,-36+y0); ctx.lineTo(0,-28+y0);
   ctx.closePath(); ctx.fill();
-  
-  // 头
   ctx.fillStyle = '#f0d4ac';
   ctx.beginPath(); ctx.arc(0,-46+y0,9,0,7); ctx.fill();
-  
-  // 头发
   ctx.fillStyle = '#1a1c26';
   ctx.beginPath(); ctx.arc(0,-48+y0,9.5, Math.PI*1.02, Math.PI*1.98); ctx.fill();
   ctx.beginPath(); ctx.arc(0,-57+y0,4.8,0,7); ctx.fill();
-  
-  // 眼睛
+  ctx.fillStyle = w.trim === '#fff0a0' ? '#ffd860' : '#c8a45c';
+  ctx.fillRect(-4.6, -55.5+y0, 9.2, 1.8);
+  const hairSw = Math.sin(state.t*2.6 + P.anim*0.3) * 1.4;
+  ctx.strokeStyle = '#1a1c26'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(-8, -42+y0); ctx.quadraticCurveTo(-13 + hairSw, -34+y0, -11 + hairSw, -26+y0); ctx.stroke();
   if(P.dir !== 3){
     ctx.fillStyle = '#1a1a1a';
     const off = P.dir === 1 ? -2.2 : P.dir === 2 ? 2.2 : 0;
     ctx.beginPath(); ctx.arc(-3+off,-46+y0,1.4,0,7); ctx.fill();
     ctx.beginPath(); ctx.arc( 3+off,-46+y0,1.4,0,7); ctx.fill();
   }
-  
-  // 挥剑
+  if(P.swing <= 0){
+    ctx.save();
+    ctx.translate(-8, -18+y0);
+    ctx.rotate(-0.5 + Math.sin(state.t*2.2)*0.03);
+    ctx.globalAlpha = 0.95;
+    drawBladeBody(w, 20, 2.4, state.t, 0.45);
+    ctx.restore();
+  }
   if(P.swing > 0){
     try { drawSwordInLocal(); } catch(e){}
   }
-  
   ctx.restore();
 }
 function drawSwordInLocal(){
   const w = currentWeapon() || WEAPONS[0];
-  const total = 0.26;
-  const prog = 1 - P.swing / total;
+  const total = P.swing > 0.26 ? P.swing : 0.26;
+  const prog = clamp(1 - P.swing / total, 0, 1);
   const eased = 1 - Math.pow(1 - prog, 2.4);
   const base = P.swingAngle;
   const sweep = Math.PI * 1.0;
@@ -3833,28 +4820,40 @@ function drawSwordInLocal(){
   ctx.save();
   ctx.translate(0, -28);
   const trailA = Math.pow(1 - prog, 0.6);
-  ctx.globalAlpha = trailA * 0.55;
-  const g = ctx.createRadialGradient(0,0,12,0,0,95);
-  g.addColorStop(0, `rgba(${w.color},0)`);
-  g.addColorStop(0.5, `rgba(${w.color},0.5)`);
-  g.addColorStop(1, 'rgba(240,250,255,0)');
-  ctx.fillStyle = g;
   const a1 = Math.min(start, cur), a2 = Math.max(start, cur);
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,95, a1, a2); ctx.closePath(); ctx.fill();
+  const g = ctx.createRadialGradient(0,0,12,0,0,112);
+  g.addColorStop(0, `rgba(${w.color},0)`);
+  g.addColorStop(0.5, `rgba(${w.color},0.55)`);
+  g.addColorStop(1, 'rgba(240,250,255,0)');
+  ctx.globalAlpha = trailA * 0.6;
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,112, a1, a2); ctx.closePath(); ctx.fill();
   ctx.globalAlpha = trailA * 0.9;
   ctx.strokeStyle = `rgba(${w.color},0.95)`;
   ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.arc(0,0,92, a1, a2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,0,108, a1, a2); ctx.stroke();
+  ctx.globalAlpha = trailA * 0.8;
+  ctx.strokeStyle = 'rgba(255,255,255,.95)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(0,0,102, a1, a2); ctx.stroke();
   ctx.globalAlpha = 1;
   ctx.rotate(cur);
-  ctx.shadowColor = `rgba(${w.color},1)`; ctx.shadowBlur = 14;
-  ctx.fillStyle = '#f2faff';
-  ctx.beginPath(); ctx.moveTo(16,-3); ctx.lineTo(80,0); ctx.lineTo(16,3); ctx.closePath(); ctx.fill();
-  ctx.shadowBlur = 0;
+  ctx.translate(13, 0);
+  ctx.rotate(Math.PI / 2);
+  ctx.save();
+  ctx.shadowColor = `rgba(${w.color},1)`; ctx.shadowBlur = 18;
+  drawBladeBody(w, 46, 5.2, state.t, 1);
   ctx.restore();
+  ctx.save();
+  ctx.rotate(-Math.PI/2);
+  ctx.translate(0, 46);
+  ctx.fillStyle = 'rgba(255,255,255,.95)';
+  ctx.shadowColor = `rgba(${w.color},1)`; ctx.shadowBlur = 12;
+  ctx.beginPath(); ctx.arc(0, 0, 2.2, 0, 7); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+  weaponAura(w, P.x, P.y, 1.4, 0);
 }
-
-/* 小怪绘制（含 3 种人形） */
 function drawEnemyBody(e, t, w){
   const c = e.color;
   const breath = 1 + Math.sin(t*3 + e.breath) * 0.05;
@@ -4277,16 +5276,19 @@ function drawSwordArray(){
     const ang = state.swordAngle + i * (Math.PI*2 / n);
     const sx = P.x + Math.cos(ang) * radius;
     const sy = P.y - 26 + Math.sin(ang) * radius * 0.55;
+    const sw = Math.sin(state.t * 3 + i) * 0.16;
     ctx.save();
     ctx.translate(sx, sy);
-    ctx.rotate(ang + Math.PI/2);
-    ctx.shadowColor = `rgba(${primaryRGB},1)`; ctx.shadowBlur = 14;
-    ctx.fillStyle = isSwordGod() ? '#fff0c0' : '#e0f6ff';
-    ctx.beginPath();
-    ctx.moveTo(0,-15); ctx.lineTo(3.5,7); ctx.lineTo(0,14); ctx.lineTo(-3.5,7);
-    ctx.closePath(); ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.rotate(ang + Math.PI/2 + sw);
+    ctx.globalAlpha = 0.95;
+    ctx.save();
+    ctx.scale(1.25, 1.25);
+    ctx.shadowColor = `rgba(${primaryRGB},1)`; ctx.shadowBlur = 12;
+    drawBladeBody(w, 18, 2.3, state.t + i, 0.8);
     ctx.restore();
+    ctx.restore();
+    ctx.fillStyle = `rgba(${primaryRGB},${0.5 + 0.5 * Math.sin(state.t * 8 + i)})`;
+    ctx.beginPath(); ctx.arc(sx + Math.cos(ang) * 20, sy + Math.sin(ang) * 20, 1.8, 0, 7); ctx.fill();
   }
   const innerN = Math.floor(n / 2) + 1;
   const innerR = 32;
@@ -4297,12 +5299,21 @@ function drawSwordArray(){
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(ang + Math.PI/2);
-    ctx.fillStyle = 'rgba(200,240,255,0.9)';
+    ctx.globalAlpha = 0.8;
+    ctx.shadowColor = `rgba(${primaryRGB},1)`; ctx.shadowBlur = 8;
+    ctx.fillStyle = 'rgba(220,245,255,0.9)';
     ctx.beginPath();
-    ctx.moveTo(0,-9); ctx.lineTo(2,4); ctx.lineTo(0,8); ctx.lineTo(-2,4);
+    ctx.moveTo(0,-11); ctx.lineTo(2.2,3); ctx.lineTo(0,9); ctx.lineTo(-2.2,3);
     ctx.closePath(); ctx.fill();
     ctx.restore();
   }
+  const side = Math.sin(state.t * 2) > 0 ? 1 : -1;
+  ctx.save();
+  ctx.translate(P.x - side * 30, P.y - 52);
+  ctx.rotate(0.9 + Math.sin(state.t * 2.4) * 0.1);
+  ctx.shadowColor = `rgba(${primaryRGB},1)`; ctx.shadowBlur = 16;
+  drawBladeBody(w, 27, 3.2, state.t, 0.9);
+  ctx.restore();
 }
 function drawProjectiles(){
   for(const pr of projectiles){
@@ -4315,9 +5326,12 @@ function drawProjectiles(){
       ctx.beginPath(); ctx.arc(0,0,pr.r,0,7); ctx.fill();
       ctx.shadowBlur = 0;
     } else {
-      ctx.beginPath();
-      ctx.moveTo(0,-13); ctx.lineTo(3,5); ctx.lineTo(0,11); ctx.lineTo(-3,5);
-      ctx.closePath(); ctx.fill();
+      const w = weaponOf(pr.weapon);
+      ctx.shadowColor = `rgba(${pr.color},1)`; ctx.shadowBlur = 12;
+      ctx.save();
+      ctx.translate(0, -8);
+      drawBladeBody(w, 17, 2.2, state.t, 0.7);
+      ctx.restore();
     }
     ctx.restore();
   }
@@ -4335,6 +5349,18 @@ function drawBeams(){
       let x = b.x1 + (b.x2 - b.x1) * tt;
       let y = b.y1 + (b.y2 - b.y1) * tt;
       if(i > 0 && i < b.segs){ x += rnd(-b.jitter, b.jitter); y += rnd(-b.jitter, b.jitter); }
+      if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = `rgba(${b.sub || '255,255,255'},.95)`;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    for(let i = 0; i <= b.segs; i++){
+      const tt = i / b.segs;
+      let x = b.x1 + (b.x2 - b.x1) * tt;
+      let y = b.y1 + (b.y2 - b.y1) * tt;
+      if(i > 0 && i < b.segs){ x += rnd(-b.jitter, b.jitter) * 0.5; y += rnd(-b.jitter, b.jitter) * 0.5; }
       if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
@@ -4403,13 +5429,170 @@ function drawEffects(){
       ctx.beginPath(); ctx.arc(fx.x, fx.y, r, 0, Math.PI*2); ctx.stroke();
     } else if(fx.type === 'beam'){
       ctx.save();
-      ctx.globalAlpha = t;
-      ctx.strokeStyle = `rgba(${fx.color},1)`;
-      ctx.lineWidth = fx.width * t * 0.6 + 4;
       ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(fx.x1, fx.y1); ctx.lineTo(fx.x2, fx.y2);
+      ctx.globalAlpha = t * 0.35;
+      ctx.strokeStyle = `rgba(${fx.color},1)`;
+      ctx.lineWidth = fx.width * (fx.core ? 1.5 : 1.0) * t + 10;
+      ctx.beginPath(); ctx.moveTo(fx.x1, fx.y1); ctx.lineTo(fx.x2, fx.y2); ctx.stroke();
+      ctx.globalAlpha = t;
+      ctx.lineWidth = fx.width * t * 0.6 + 4;
       ctx.stroke();
+      if(fx.core){
+        ctx.globalAlpha = t;
+        ctx.strokeStyle = 'rgba(255,255,255,.95)';
+        ctx.lineWidth = Math.max(2, fx.width * t * 0.22);
+        ctx.beginPath(); ctx.moveTo(fx.x1, fx.y1); ctx.lineTo(fx.x2, fx.y2); ctx.stroke();
+      }
+      ctx.restore();
+    } else if(fx.type === 'slash'){
+      const k = 1 - t;
+      const L = fx.len * (0.55 + 0.45 * k);
+      const wdt = (fx.thin || 4) * (0.4 + t * 0.6);
+      ctx.save();
+      ctx.translate(fx.x, fx.y);
+      ctx.rotate(fx.angle);
+      ctx.globalAlpha = Math.min(1, t * 1.3);
+      ctx.shadowColor = `rgba(${fx.color},1)`;
+      ctx.shadowBlur = 14 * t;
+      const grd = ctx.createLinearGradient(0, 0, L, 0);
+      grd.addColorStop(0, `rgba(${fx.color},0)`);
+      grd.addColorStop(0.55, `rgba(${fx.color},${0.85 * t})`);
+      grd.addColorStop(1, `rgba(255,255,255,${t})`);
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.moveTo(L * 0.18, 0);
+      ctx.quadraticCurveTo(L * 0.62, -wdt * 1.6 * (1 - t * 0.4), L, 0);
+      ctx.quadraticCurveTo(L * 0.62, wdt * 0.5, L * 0.18, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = `rgba(255,255,255,${t * 0.95})`;
+      ctx.lineWidth = Math.max(1, wdt * 0.3);
+      ctx.beginPath();
+      ctx.moveTo(L * 0.2, 0);
+      ctx.quadraticCurveTo(L * 0.62, -wdt * 1.1 * (1 - t * 0.4), L, 0);
+      ctx.stroke();
+      ctx.restore();
+    } else if(fx.type === 'pillar'){
+      const k = 1 - t;
+      const h = fx.maxR * 2.6 * (0.25 + 0.75 * Math.min(1, k * 2.2));
+      const w = fx.width * (0.35 + 0.65 * t);
+      ctx.save();
+      ctx.translate(fx.x, fx.y);
+      ctx.globalAlpha = t;
+      const pg = ctx.createLinearGradient(0, 0, 0, -h);
+      pg.addColorStop(0, `rgba(${fx.color},.85)`);
+      pg.addColorStop(0.45, `rgba(${fx.color},.45)`);
+      pg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = pg;
+      ctx.beginPath();
+      ctx.moveTo(-w, 0);
+      ctx.lineTo(-w * 0.35, -h);
+      ctx.lineTo(w * 0.35, -h);
+      ctx.lineTo(w, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${0.5 * t})`;
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.25, 0); ctx.lineTo(-w * 0.08, -h * 0.92); ctx.lineTo(w * 0.08, -h * 0.92); ctx.lineTo(w * 0.25, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = t * 0.8;
+      ctx.strokeStyle = `rgba(${fx.color},1)`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(0, 0, fx.maxR, fx.maxR * 0.5, 0, 0, 7); ctx.stroke();
+      ctx.restore();
+    } else if(fx.type === 'glow'){
+      const r = fx.maxR * (0.4 + 0.6 * (1 - t));
+      ctx.save();
+      const gg = ctx.createRadialGradient(fx.x, fx.y, 0, fx.x, fx.y, r);
+      gg.addColorStop(0, `rgba(255,255,255,${0.75 * t})`);
+      gg.addColorStop(0.35, `rgba(${fx.color},${0.5 * t})`);
+      gg.addColorStop(1, `rgba(${fx.color},0)`);
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(fx.x, fx.y, r, 0, 7); ctx.fill();
+      ctx.restore();
+    } else if(fx.type === 'runes'){
+      const k = 1 - t;
+      const R = fx.maxR * (0.5 + 0.5 * Math.min(1, k * 3));
+      ctx.save();
+      ctx.translate(fx.x, fx.y + 2);
+      ctx.scale(1, 0.58);
+      ctx.rotate(state.t * 1.6 + fx.i * 0.7);
+      ctx.globalAlpha = t * 0.9;
+      ctx.strokeStyle = `rgba(${fx.color},1)`;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = `rgba(${fx.color},1)`; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.72, 0, Math.PI * 2); ctx.stroke();
+      const segs = 8 + (fx.i % 4) * 2;
+      for(let i = 0; i < segs; i++){
+        const a1 = i / segs * Math.PI * 2;
+        const a2 = a1 + Math.PI / segs;
+        ctx.beginPath(); ctx.arc(0, 0, R * 0.86, a1, a2); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a1) * R * 0.86, Math.sin(a1) * R * 0.86);
+        ctx.lineTo(Math.cos(a1) * R, Math.sin(a1) * R);
+        ctx.stroke();
+      }
+      for(let i = 0; i < 6; i++){
+        const a = -state.t * 2.2 + i / 6 * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * R * 0.74, Math.sin(a) * R * 0.74);
+        ctx.lineTo(Math.cos(a + 0.5) * R * 0.6, Math.sin(a + 0.5) * R * 0.6);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      if(fx.label){
+        ctx.save();
+        ctx.globalAlpha = t * 0.85;
+        ctx.font = `bold ${Math.round(fx.maxR * 0.5)}px "Songti SC","STSong",serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(${fx.color},1)`;
+        ctx.shadowColor = `rgba(${fx.color},1)`; ctx.shadowBlur = 18;
+        ctx.fillText(fx.label, fx.x, fx.y - 8);
+        ctx.restore();
+      }
+    } else if(fx.type === 'falling'){
+      const start = fx.maxLife + 0.05;
+      const k = clamp((start - fx.life) / fx.maxLife, 0, 1);
+      const dropH = 260;
+      const y = fx.y - dropH * (1 - k);
+      const trailLen = 60 + 120 * k;
+      ctx.save();
+      ctx.globalAlpha = 0.35 + 0.5 * k;
+      ctx.strokeStyle = `rgba(${fx.color},1)`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(fx.x, fx.y, (fx.meteor ? 46 : 34) * (0.6 + 0.4 * k),
+        (fx.meteor ? 46 : 34) * 0.55 * (0.6 + 0.4 * k), 0, 0, 7); ctx.stroke();
+      ctx.globalAlpha = 1;
+      const tg = ctx.createLinearGradient(fx.x, y - trailLen, fx.x, y);
+      tg.addColorStop(0, `rgba(${fx.color},0)`);
+      tg.addColorStop(1, `rgba(${fx.sub},.95)`);
+      ctx.fillStyle = tg;
+      ctx.beginPath();
+      ctx.moveTo(fx.x - (fx.meteor ? 9 : 4), y);
+      ctx.lineTo(fx.x, y - trailLen);
+      ctx.lineTo(fx.x + (fx.meteor ? 9 : 4), y);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowColor = `rgba(${fx.color},1)`; ctx.shadowBlur = 16;
+      ctx.fillStyle = `rgba(${fx.sub},1)`;
+      if(fx.meteor){
+        ctx.beginPath(); ctx.arc(fx.x, y, 8, 0, 7); ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(fx.x, y + 14); ctx.lineTo(fx.x + 3.5, y - 6); ctx.lineTo(fx.x, y - 18); ctx.lineTo(fx.x - 3.5, y - 6);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    } else if(fx.type === 'ghost'){
+      ctx.save();
+      ctx.globalAlpha = t * 0.42;
+      ctx.translate(fx.x, fx.y);
+      ctx.fillStyle = `rgba(${fx.color},1)`;
+      ctx.beginPath();
+      ctx.moveTo(-10, -2); ctx.lineTo(10, -2); ctx.lineTo(8, -36); ctx.lineTo(-8, -36);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, -46, 8, 0, 7); ctx.fill();
       ctx.restore();
     }
   }
@@ -4625,7 +5808,8 @@ function renderHUD(){
   if(isSwordGod()) sw = '剑阵 · ' + swCnt + ' 剑齐鸣';
   else if(isSwordArrayOn()) sw = '剑阵 · ' + swCnt + ' 剑环身';
   const swl = $('swordLine'); if(swl) swl.textContent = sw;
-  const bl = $('biomeLine'); if(bl) bl.textContent = (BIOMES[state.biome]||BIOMES[0]).name;
+  const bl = $('biomeLine');
+  if(bl) bl.textContent = (BIOMES[state.biome]||BIOMES[0]).name + ' · 难度 ' + (state.biome + 1);
   const shl = $('shieldLine');
   if(shl){
     if(state.shield > 0){
@@ -4728,6 +5912,7 @@ function tryBreak(){
   refreshUnlockedSkills();
   toast('突破 · ' + realmText());
   renderHUD(); save();
+  checkBiomeUnlocks();
 }
 
 function save(){
@@ -4735,6 +5920,7 @@ function save(){
     localStorage.setItem('xiantu16', JSON.stringify({
       realm:G.realm, layer:G.layer, qi:G.qi, stones:G.stones,
       biome:state.biome,
+      seenBiomes: Array.from(G.seenBiomes),
       equipped: G.equipped,
       unlockedSkills: Array.from(G.unlockedSkills),
       weapons: Array.from(G.weapons),
@@ -4755,6 +5941,11 @@ function load(){
       if(typeof d.biome === 'number' && d.biome >= 0 && d.biome < BIOMES.length){
         if(G.realm >= (BIOMES[d.biome].realmReq || 0)) state.biome = d.biome;
       }
+      if(Array.isArray(d.seenBiomes)){
+        G.seenBiomes = new Set(d.seenBiomes.filter(n => typeof n === 'number' && n >= 0 && n < BIOMES.length));
+      }
+      for(let i = 0; i < BIOMES.length; i++) if(G.realm >= (BIOMES[i].realmReq || 0)) G.seenBiomes.add(i);
+      G.seenBiomes.add(0);
       if(Array.isArray(d.equipped) && d.equipped.length === 8) G.equipped = d.equipped;
       if(Array.isArray(d.unlockedSkills)) G.unlockedSkills = new Set(d.unlockedSkills);
       if(Array.isArray(d.weapons)){ G.weapons = new Set(d.weapons); G.weapons.add(0); }
@@ -4804,6 +5995,7 @@ function manualSave(){
 
 function loadGame(){
   if(!localStorage.getItem('xiantu16')){ toast('暂无存档'); return; }
+  clearUnlockTimers();
   load();
   recalc();
   refreshUnlockedSkills();
@@ -4845,6 +6037,8 @@ function restartGame(){
   G.unlockedSkills = new Set();
   G.weapons = new Set([0]);
   G.currentWeapon = 0;
+  G.seenBiomes = new Set([0]);
+  clearUnlockTimers();
   G.cd = {}; G.atkCd = 0;
   state.biome = 0;
   state.started = false;
@@ -4915,6 +6109,7 @@ function initGame(){
   load();
   recalc();
   refreshUnlockedSkills();
+  checkBiomeUnlocks();
   G.hp = G.maxHp;
   G.mp = G.maxMp;
   G.cd = {};
@@ -4960,6 +6155,7 @@ function initGame(){
   toast('拖动屏幕 / WASD 移动');
   setTimeout(()=> toast('建筑群落散落四方 · 奇遇各处不同'), 2600);
   setTimeout(()=> toast('妖王会施展专属神通，注意地面预警'), 5200);
+  setTimeout(()=> toast('越深处妖气越重 · 突破境界可开启新境'), 7600);
   if(!saveTimer) saveTimer = setInterval(save, 5000);
 }
 const startBtn = $('startBtn');
@@ -4970,6 +6166,42 @@ if(startBtn) startBtn.addEventListener('click', ()=>{
   if(ss) ss.style.display = 'none';
   setTimeout(()=>{ resize(); initGame(); }, 30);
 });
+
+(function(){
+  const q = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+  const ss = $('startScreen'); if(ss) ss.style.display = 'none';
+  resize();
+  initGame();
+  maintainEnemies = function(){};
+  state.enemies.length = 0;
+  state.nextBossT = 1e9;
+  const bi = parseInt(q.get('bi') || '0', 10) || 0;
+  if(bi !== 0){
+    state.biome = bi;
+    setupLandmarks();
+    chunks.clear(); lakeCache.clear();
+  }
+  let hx = parseFloat(q.get('x') || '0');
+  let hy = parseFloat(q.get('y') || '0');
+  if(hx || hy){
+    P.x = BIOME_ORIGIN[bi].x + hx;
+    P.y = BIOME_ORIGIN[bi].y + hy;
+    state.camX = P.x - W / 2;
+    state.camY = P.y - H / 2;
+  }
+  if(q.get('ui') === '0'){
+    for(const id of ['hud', 'topButtons', 'skillBar', 'attackBtn', 'herbBtn', 'toast', 'bossBar']){
+      const el = $(id); if(el) el.style.display = 'none';
+    }
+  }
+  if(q.get('haz') === '1'){
+    addHazard(P.x - 140, P.y - 40, 78, 9, 1, '255,120,60');
+    addHazard(P.x + 60, P.y - 150, 66, 9, 1, '255,120,60');
+    addHazard(P.x + 150, P.y + 30, 84, 9, 1, '255,120,60');
+  }
+  if(q.get('menu') === '1') backToMenu();
+})();
+
 requestAnimationFrame(loop);
 </script>
 </body>
