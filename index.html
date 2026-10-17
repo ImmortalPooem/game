@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>仙途·问道 v18.0</title>
+<title>仙途 · 问道 v18.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0e1a16;
@@ -245,7 +245,7 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
 <div id="hurtOverlay"></div>
 <div id="flashOverlay"></div>
 <div id="biomeBanner"></div>
-<div id="unlockNote"><div class="unTag">新 境 开 启</div><div class="unName"></div><div class="unSub"></div><div class="unDiff"></div></div>
+<div id="unlockNote"><div class="unTag">新 区 开 启</div><div class="unName"></div><div class="unSub"></div><div class="unDiff"></div></div>
 <div id="leftZone"></div>
 <div id="joyBase"><div id="joyKnob"></div></div>
 
@@ -264,7 +264,7 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   <div class="bar"><div id="qiFill"></div></div>
   <div class="lbl" id="qiLbl">修为 0 / 40</div>
   <div id="stoneLine">灵石 0</div>
-  <div id="weaponLine">⚔ 青锋剑</div>
+  <div id="weaponLine">「凡铁青锋」</div>
   <div id="swordLine">剑阵 · 未悟</div>
   <div id="biomeLine">青云竹林 · 难度 1</div>
   <div id="shieldLine">护盾 0</div>
@@ -321,9 +321,8 @@ canvas{display:block;position:fixed;inset:0;touch-action:none}
   <p class="hint">
     拖动屏幕 / WASD 移动　·　空格或 J 平A<br>
     1 ~ 8 释放技能　·　「遁光」化光球冲刺撞击<br>
-    十方胜境 · 妖王各怀神通 · 越往深处越凶险<br>
-    境界精进将开启新境 · 留意「新境开启」告示
-  </p>
+    十方胜境 · 妖王各怀神通 · 越往深处越凶<br>
+    境界精进将开启新境 · 留意「新境开启」告示  </p>
 </div>
 
 <script>
@@ -402,7 +401,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(resize, 200));
 resize();
 
 const BIOME_ORIGIN = [];
-const BIOME_EMOJIS = ['🎋','🌋','🌳','👻','🏜️','❄️','🌊','⛩️','💀','✨'];
+const BIOME_EMOJIS = ['🎋','🌋','🌳','👻','🏜️','❄️','🌊','⛩️','💀','🌑'];
 const DIFFICULTY_NAMES = ['清幽','微澜','险峻','幽深','赤旱','极寒','渊海','天阙','魔渊','太虚'];
 const BIOMES = [
   { id:'bamboo', name:'青云竹林', desc:'翠竹连绵 · 妖狼初现', realmReq:0,
@@ -437,11 +436,11 @@ const BIOMES = [
     power:4.80, hp:4.42, reward:0.22, dens:0.72, elite:0.23,
     h1:42,h2:20,s1:45,s2:22,l1:42,l2:14, tint:'rgba(255,210,110,0.10)',
     propTypes:['goldtree','cloud','goldpillar'], lakeType:'spirit' },
-  { id:'abyss', name:'九幽魔渊', desc:'魔气冲天 · 血海无涯', realmReq:4,
+  { id:'abyss', name:'九幽魔渊', desc:'魔气冲天 · 血海无边', realmReq:4,
     power:5.88, hp:5.40, reward:0.19, dens:0.70, elite:0.26,
     h1:0,h2:16,s1:55,s2:18,l1:8,l2:5, tint:'rgba(120,0,20,0.20)',
     propTypes:['thorn','thorn','skull','darkcrystal'], lakeType:'blood' },
-  { id:'star', name:'太虚星河', desc:'星辰为沙 · 尊者统天', realmReq:4,
+  { id:'star', name:'太虚星河', desc:'星辰为沙 · 尊者统御', realmReq:4,
     power:7.20, hp:6.60, reward:0.16, dens:0.68, elite:0.30,
     h1:250,h2:35,s1:40,s2:25,l1:8,l2:6, tint:'rgba(80,50,160,0.18)',
     propTypes:['starstone','starstone','starflower','voidcloud'], lakeType:'star' }
@@ -451,13 +450,13 @@ for(let i = 0; i < BIOMES.length; i++) BIOME_ORIGIN.push({ x: i * 1000000, y: i 
 const WEAPONS = [
   { id:0, name:'青锋剑', atkBonus:0,    color:'200,240,255', biome:null, desc:'凡铁青锋 · 修士入门之物', tipColor:'220,255,255',
     edge:'straight', metal:['#2f4654','#d8f2ff','#6f8da0'], lacquer:'#1e3a52', trim:'#c8a45c',
-    guard:'cross', gem:null, inscriptions:0, tassel:'#5aa0d0', aura:'mist', trail:'青', rune:'锋' },
+    guard:'cross', gem:null, inscriptions:0, tassel:'#5aa0d0', aura:'mist', trail:'剑', rune:'锋' },
   { id:1, name:'翠竹剑', atkBonus:0.15, color:'150,255,180', biome:0, desc:'青云竹林 · 翠竹妖王掉落', tipColor:'180,255,180',
     edge:'thin', metal:['#2a5a34','#e8ffd8','#5aa06a'], lacquer:'#20502a', trim:'#a8e070',
-    guard:'bamboo', gem:'rgba(150,255,170,1)', inscriptions:2, tassel:'#4ade80', aura:'leaf', trail:'竹', rune:'竹' },
+    guard:'bamboo', gem:'rgba(150,255,170,1)', inscriptions:2, tassel:'#4ade80', aura:'leaf', trail:'竹', rune:'翠' },
   { id:2, name:'离火剑', atkBonus:0.28, color:'255,140,70',  biome:1, desc:'赤炎火山 · 赤焰妖王掉落', tipColor:'255,220,140',
     edge:'flame', metal:['#4a1208','#ffe8b0','#9a3a1a'], lacquer:'#5a1408', trim:'#ffb040',
-    guard:'wing', gem:'rgba(255,150,40,1)', inscriptions:3, tassel:'#ff6a30', aura:'fire', trail:'火', rune:'离' },
+    guard:'wing', gem:'rgba(255,150,40,1)', inscriptions:3, tassel:'#ff6a30', aura:'fire', trail:'焰', rune:'离' },
   { id:3, name:'妖藤剑', atkBonus:0.42, color:'160,255,120', biome:2, desc:'万妖古林 · 千年树妖掉落', tipColor:'200,255,120',
     edge:'serpent', metal:['#22381a','#e0ffb0','#5a7a3a'], lacquer:'#2a3a18', trim:'#c8e060',
     guard:'vine', gem:'rgba(190,255,90,1)', inscriptions:3, tassel:'#86efac', aura:'leaf', trail:'藤', rune:'妖' },
@@ -469,7 +468,7 @@ const WEAPONS = [
     guard:'ring', gem:'rgba(255,190,90,1)', inscriptions:4, tassel:'#d0a040', aura:'ember', trail:'陨星', rune:'陨' },
   { id:6, name:'寒冰剑', atkBonus:0.95, color:'180,240,255', biome:5, desc:'寒冰雪原 · 冰魄妖王掉落', tipColor:'220,250,255',
     edge:'crystal', metal:['#1a3a52','#f4fdff','#5a9ac0'], lacquer:'#12324a', trim:'#a0e8ff',
-    guard:'snow', gem:'rgba(190,240,255,.95)', inscriptions:5, tassel:'#b0f0ff', aura:'ice', trail:'寒', rune:'冰' },
+    guard:'snow', gem:'rgba(190,240,255,.95)', inscriptions:5, tassel:'#b0f0ff', aura:'ice', trail:'雪', rune:'冰' },
   { id:7, name:'碧海剑', atkBonus:1.15, color:'120,220,255', biome:6, desc:'碧海归墟 · 碧海妖王掉落', tipColor:'190,240,255',
     edge:'wave', metal:['#0a2a3a','#d8f8ff','#2a6a8a'], lacquer:'#0c3a50', trim:'#80e0ff',
     guard:'wave', gem:'rgba(120,220,255,1)', inscriptions:6, tassel:'#60d0ff', aura:'bubble', trail:'碧海', rune:'海' },
@@ -500,23 +499,23 @@ const BOSS_BY_BIOME = [
 ];
 
 const BASE_SKILLS = [
-  { id:0, name:'剑气斩', key:'剑', mp:4,  cd:0.8, unlockLv:0,  type:'fan',    power:2.2, radius:170, color:'140,220,255', fx:'120,210,255', sub:'235,250,255', trail:'slash',   hitFx:'slash',   shape:'arc',    desc:'凝气于剑，扇形斩出三重剑罡' },
+  { id:0, name:'剑气斩', key:'剑', mp:4,  cd:0.8, unlockLv:0,  type:'fan',    power:2.2, radius:170, color:'140,220,255', fx:'120,210,255', sub:'235,250,255', trail:'slash',   hitFx:'slash',   shape:'arc',    desc:'凝气于剑，扇形斩出三重剑芒' },
   { id:1, name:'御剑术', key:'御', mp:10, cd:6.0, unlockLv:9,  type:'fly',    power:0,   radius:0,   color:'150,230,255', fx:'180,240,255', sub:'255,255,255', trail:'wind',    desc:'脚踏神兵御气凌空，行路如风' },
   { id:2, name:'离火',   key:'火', mp:14, cd:1.8, unlockLv:12, type:'nova',   power:3.4, radius:210, color:'255,140,70',  fx:'255,110,40',  sub:'255,236,150', trail:'fire',    hitFx:'burn',    shape:'nova',   desc:'真火自足下爆开，灼烧方圆二丈' },
   { id:3, name:'回春',   key:'春', mp:12, cd:3.0, unlockLv:18, type:'heal',   power:0.45,radius:0,   color:'140,255,200', fx:'150,255,190', sub:'240,255,225', trail:'leaf',    desc:'木灵回春，青叶绕身修复伤势' },
   { id:4, name:'万剑阵', key:'阵', mp:18, cd:2.8, unlockLv:22, type:'swords', power:4.0, radius:0,   color:'190,240,255', fx:'170,230,255', sub:'255,255,255', trail:'blade',   hitFx:'burst',   shape:'blade',  desc:'周身迸发十八道飞剑，环射八方' },
   { id:5, name:'雷霆',   key:'雷', mp:20, cd:2.0, unlockLv:27, type:'chain',  power:5.2, radius:340, color:'200,225,255', fx:'150,190,255', sub:'255,255,230', trail:'thunder', hitFx:'spark',   desc:'引九天雷霆，于敌阵间连续传导五击' },
-  { id:6, name:'冰封',   key:'冰', mp:16, cd:3.5, unlockLv:31, type:'nova',   power:2.8, radius:260, color:'150,220,255', fx:'140,215,255', sub:'230,250,255', trail:'frost',   hitFx:'frost',   shape:'nova', freeze:2.6, desc:'寒气骤凝，冻结四周敌手 2.6 秒' },
+  { id:6, name:'冰封',   key:'冰', mp:16, cd:3.5, unlockLv:31, type:'nova',   power:2.8, radius:260, color:'150,220,255', fx:'140,215,255', sub:'230,250,255', trail:'frost',   hitFx:'frost',   shape:'nova', freeze:2.6, desc:'寒气骤凝，冻结四周敌人 2.6 秒' },
   { id:7, name:'太虚域', key:'域', mp:32, cd:5.0, unlockLv:36, type:'domain', power:1.6, radius:250, color:'255,220,140', fx:'255,210,120', sub:'255,255,235', trail:'halo',    shape:'domain', desc:'以身为界，展开太虚剑域持续绞杀' }
 ];
 const EXTRA_SKILLS = [
   { id:8,  name:'破空斩',   key:'破', mp:8,  cd:1.0, unlockLv:0, type:'pierce',   power:5.0, radius:240, color:'220,240,255', fx:'200,235,255', sub:'255,255,255', trail:'blade',  hitFx:'slash',  shape:'blade',  desc:'一剑光寒，直线贯透路径上所有敌人' },
   { id:9,  name:'疾风步',   key:'疾', mp:6,  cd:4.0, unlockLv:0, type:'dash',     power:0,   radius:0,   color:'160,240,200', fx:'170,255,210', sub:'255,255,255', trail:'wind',   desc:'身随风走，瞬息掠出两丈并留下残影' },
   { id:10, name:'剑雨',     key:'雨', mp:24, cd:4.0, unlockLv:0, type:'rain',     power:3.0, radius:220, color:'180,220,255', fx:'185,225,255', sub:'255,255,255', trail:'blade',  hitFx:'burst',  shape:'blade',  desc:'召十二柄飞剑自天而降，插落大圆之内' },
-  { id:11, name:'护体金光', key:'护', mp:20, cd:6.0, unlockLv:0, type:'shield',   power:0.6, radius:0,   color:'255,240,180', fx:'255,230,150', sub:'255,255,240', trail:'halo',   desc:'金光护体，化为六成气血的护盾 8 秒' },
+  { id:11, name:'护体金光', key:'护', mp:20, cd:6.0, unlockLv:0, type:'shield',   power:0.6, radius:0,   color:'255,240,180', fx:'255,230,150', sub:'255,255,240', trail:'halo',   desc:'金光护体，化为六成气血的护盾（8 秒）' },
   { id:12, name:'归一',     key:'归', mp:40, cd:9.0, unlockLv:0, type:'ultimate', power:8.0, radius:320, color:'255,220,160', fx:'255,215,150', sub:'255,255,255', trail:'blade',  hitFx:'burst',  shape:'twin',   desc:'万法归一，双刃交叉斩尽方圆三丈' },
   { id:13, name:'缩地成寸', key:'缩', mp:8,  cd:2.0, unlockLv:0, type:'teleport', power:0,   radius:200, color:'180,220,255', fx:'190,225,255', sub:'255,255,255', trail:'wind',   desc:'一步缩地乾坤咫尺，残影留于原处' },
-  { id:24, name:'遁光',     key:'遁', mp:20, cd:10.0,unlockLv:18, type:'escape',   power:3.5, radius:0,   color:'255,240,180', fx:'255,235,170', sub:'255,255,255', trail:'halo',   desc:'化金光球冲刺 6 秒，撞碎沿途敌手' }
+  { id:24, name:'遁光',     key:'遁', mp:20, cd:10.0,unlockLv:18, type:'escape',   power:3.5, radius:0,   color:'255,240,180', fx:'255,235,170', sub:'255,255,255', trail:'halo',   desc:'化金光球冲刺 6 秒，撞碎沿途敌人' }
 ];
 const BIOME_SKILLS = [
   { id:14, name:'青竹剑意', key:'竹', mp:16, cd:1.5, type:'fan',   power:4.0, radius:240, color:'150,255,180', fx:'140,250,170', sub:'235,255,235', trail:'leaf',    hitFx:'leaf',   shape:'arc',    desc:'竹林剑意，剑气如竹叶纷飞' },
@@ -524,9 +523,9 @@ const BIOME_SKILLS = [
   { id:16, name:'万木回春', key:'木', mp:24, cd:6.0, type:'heal',  power:0.85,radius:0,   color:'160,255,180', fx:'150,255,170', sub:'240,255,220', trail:'leaf',    desc:'万千草木生机灌注，气血回满八成' },
   { id:17, name:'幽冥鬼爪', key:'幽', mp:22, cd:2.0, type:'chain', power:5.0, radius:360, color:'180,120,255', fx:'175,110,255', sub:'255,210,255', trail:'ghost',   hitFx:'shadow', desc:'幽冥阴气凝爪，连锁撕扯五名敌人' },
   { id:18, name:'陨星坠落', key:'陨', mp:30, cd:3.5, type:'rain',  power:6.0, radius:280, color:'255,180,100', fx:'255,160,70',  sub:'255,240,190', trail:'fire',    hitFx:'burn',   shape:'meteor', desc:'召陨星十二颗自天穹轰落' },
-  { id:19, name:'极寒冰爆', key:'寒', mp:24, cd:3.0, type:'nova',  power:4.2, radius:320, color:'180,240,255', fx:'170,235,255', sub:'240,252,255', trail:'frost',   hitFx:'frost',  shape:'nova', freeze:3.5, desc:'极寒之炁爆开，冰封 3.5 秒' },
+  { id:19, name:'极寒冰爆', key:'寒', mp:24, cd:3.0, type:'nova',  power:4.2, radius:320, color:'180,240,255', fx:'170,235,255', sub:'240,252,255', trail:'frost',   hitFx:'frost',  shape:'nova', freeze:3.5, desc:'极寒之炁爆开，冰冻 3.5 秒' },
   { id:20, name:'碧海潮生', key:'海', mp:26, cd:2.5, type:'nova',  power:4.5, radius:260, color:'120,220,255', fx:'100,210,255', sub:'220,250,255', trail:'water',   hitFx:'burst',  shape:'nova',   desc:'潮汐自剑尖涌出，一轮又一轮拍击' },
-  { id:21, name:'金阙天雷', key:'阙', mp:28, cd:2.5, type:'chain', power:6.5, radius:420, color:'255,220,120', fx:'255,210,90',  sub:'255,255,240', trail:'thunder', hitFx:'spark',  desc:'金阙天雷，大道威压连锁贯落' },
+  { id:21, name:'金阙天雷', key:'阙', mp:28, cd:2.5, type:'chain', power:6.5, radius:420, color:'255,220,120', fx:'255,210,90',  sub:'255,255,240', trail:'thunder', hitFx:'spark',  desc:'金阙天雷，大道威压连锁贯穿' },
   { id:22, name:'血魔噬天', key:'噬', mp:32, cd:3.5, type:'domain',power:2.8, radius:300, color:'255,80,120',  fx:'255,60,100',  sub:'255,220,230', trail:'blood',   shape:'domain', desc:'血魔领域，吞噬气血以反哺己身' },
   { id:23, name:'星河倒灌', key:'星', mp:36, cd:4.0, type:'rain',  power:5.5, radius:320, color:'220,180,255', fx:'210,170,255', sub:'255,250,255', trail:'star',    hitFx:'burst',  shape:'meteor', desc:'牵动星河，星光如瀑倒灌大地' }
 ];
@@ -683,7 +682,7 @@ const ENEMY_TYPES = [
   { kind:'ape',   name:'山魈',     color:'#8a6030', glow:'rgba(255,180,90,.4)'  },
   { kind:'cult',  name:'邪修散人', color:'#60508a', glow:'rgba(180,140,255,.45)' },
   { kind:'ghost', name:'噬魂怨灵', color:'#4a7a9a', glow:'rgba(140,210,255,.45)' },
-  { kind:'golem', name:'石甲妖',   color:'#5a6370', glow:'rgba(200,200,180,.36)' },
+  { kind:'golem', name:'石甲兽',   color:'#5a6370', glow:'rgba(200,200,180,.36)' },
   { kind:'crow',  name:'焚天火鸦', color:'#c05020', glow:'rgba(255,140,60,.46)'  },
   { kind:'vine',  name:'噬血藤精', color:'#4a7a3a', glow:'rgba(150,255,120,.42)' },
   { kind:'swordsman', name:'邪修剑客', color:'#3a5070', glow:'rgba(140,200,255,.5)', isHuman:true, spellType:'fan' },
@@ -697,11 +696,11 @@ const BOSS_SKILLS = [
   [ { name:'竹刺穿心', pattern:'line', n:5,  dmg:1.5, delay:0.8,  radius:62, color:'150,255,140', cd:6.5 },
     { name:'万竹囚笼', pattern:'ring', n:10, dmg:1.3, delay:1.0,  radius:70, color:'120,240,120', cd:10 } ],
   [ { name:'熔岩喷发', pattern:'burst', n:3, dmg:1.6, delay:0.9, radius:82, color:'255,140,60', cd:6 },
-    { name:'天火坠',   pattern:'rain',  n:9, dmg:1.4, delay:1.2, radius:72, color:'255,110,40', cd:9 } ],
+    { name:'天火雨',   pattern:'rain',  n:9, dmg:1.4, delay:1.2, radius:72, color:'255,110,40', cd:9 } ],
   [ { name:'缠根',     pattern:'burst', n:2, dmg:1.5, delay:1.1, radius:95, color:'160,255,120', cd:7 },
     { name:'万木回春', pattern:'summon',dmg:0,   delay:0.6, radius:0,  color:'140,255,180', cd:12 } ],
   [ { name:'幽冥突袭', pattern:'blinkburst', n:1, dmg:2.2, delay:0.55, radius:130, color:'180,120,255', cd:6.5 },
-    { name:'鬼爪阵',   pattern:'line', n:4, dmg:1.6, delay:0.8, radius:70, color:'190,130,255', cd:9 } ],
+    { name:'鬼爪击',   pattern:'line', n:4, dmg:1.6, delay:0.8, radius:70, color:'190,130,255', cd:9 } ],
   [ { name:'陨石雨',   pattern:'rain',  n:10, dmg:1.6, delay:1.4, radius:70, color:'255,190,90', cd:9 },
     { name:'流沙',     pattern:'vortex',dmg:1.3, delay:0.8, radius:120, color:'255,210,130', cd:8 } ],
   [ { name:'极寒冰爆', pattern:'nova',  dmg:1.7, delay:0.6, radius:0,   color:'180,240,255', cd:7, freeze:1.2 },
@@ -710,7 +709,7 @@ const BOSS_SKILLS = [
     { name:'深海漩涡', pattern:'vortex',dmg:1.3, delay:0.9, radius:140, color:'110,210,255', cd:9 } ],
   [ { name:'金光剑阵', pattern:'ring',  n:12, dmg:1.5, delay:0.9, radius:66, color:'255,220,120', cd:9 },
     { name:'天雷贯日', pattern:'line',  n:6, dmg:1.7, delay:0.75, radius:68, color:'255,235,150', cd:7 } ],
-  [ { name:'血池炼魂', pattern:'burst', n:3, dmg:1.7, delay:1.0, radius:90, color:'255,60,90', cd:8, heal:0.06 },
+  [ { name:'血池炼狱', pattern:'burst', n:3, dmg:1.7, delay:1.0, radius:90, color:'255,60,90', cd:8, heal:0.06 },
     { name:'血雨',     pattern:'rain',  n:8, dmg:1.5, delay:1.3, radius:74, color:'255,50,80', cd:9 } ],
   [ { name:'星河坠落', pattern:'rain',  n:11, dmg:1.6, delay:1.5, radius:72, color:'220,190,255', cd:9 },
     { name:'虚空牵引', pattern:'vortex',dmg:1.4, delay:0.9, radius:150, color:'200,170,255', cd:8 } ]
@@ -734,7 +733,7 @@ function castBossSkill(e){
   const px = P.x, py = P.y;
   const ang = Math.atan2(py - e.y, px - e.x);
 
-  addFloat(e.x, e.y - 200, '『' + sk.name + '』', '#ffb060', true);
+  addFloat(e.x, e.y - 200, '【' + sk.name + '】', '#ffb060', true);
   toast('妖王神通 · ' + sk.name);
   effects.push({ type:'ring', x:e.x, y:e.y, maxR:150, color:'255,140,120', life:0.5, maxLife:0.5 });
   shake(8, 0.28);
@@ -878,7 +877,7 @@ function drawHazards(){
 }
 function curBiome(){ return BIOMES[state.biome] || BIOMES[0]; }
 function curDiff(){ const b = curBiome(); return b.power || 1; }
-const diffLabel = bi => (bi + 1) + ' 阶 · ' + (DIFFICULTY_NAMES[bi] || '太虚');
+const diffLabel = bi => (bi + 1) + ' · ' + (DIFFICULTY_NAMES[bi] || '太虚');
 const enemyAtkMul = () => curDiff() * (1 + G.realm * 0.04);
 const hexToRgb = h => {
   const s = String(h || '').replace('#', '');
@@ -940,7 +939,7 @@ function spawnBoss(){
     frozen:0, abilityCd:3.5, breath:Math.random()*10, spawnParticleT: 0, spellCd: 0,
     skillCd: rnd(3.5, 5.5), skillIdx: 0, enraged: false, skillSet: state.biome
   });
-  addFloat(x, y - 150, '⚔ 妖王现身 ⚔', '#ffb8c8', true);
+  addFloat(x, y - 150, '【妖王现身】', '#ffb8c8', true);
   toast('【' + t.name + '】现身！');
   effects.push({ type:'ring', x, y, maxR:260, color:'255,120,150', life:0.9, maxLife:0.9 });
   effects.push({ type:'shockwave', x, y, maxR:340, color:'255,80,120', life:0.7, maxLife:0.7, width:14 });
@@ -1529,11 +1528,11 @@ function showUnlockNote(bi, immediate){
   const wp = WEAPON_MAP[bi + 1];
   el.querySelector('.unName').textContent = bio.name;
   el.querySelector('.unSub').innerHTML =
-    (immediate ? '此前未至之地' : '境界精进，天地为之开辟') + '<br>' +
+    (immediate ? '此前未至之地' : '境界精进，天地为之开') + '<br>' +
     (bio.desc || '') + '<br>' +
-    '⚔ 妖王：' + (boss ? boss.name : '—') +
-    (sk ? '　·　📜 功法：' + sk.name : '') +
-    (wp ? '　·　🗡 神兵：' + wp.name : '');
+    '　·　妖王 ' + (boss ? boss.name : '未现') +
+    (sk ? '　·　📜 功法 ' + sk.name : '') +
+    (wp ? '　·　🗡 神兵 ' + wp.name : '');
   el.querySelector('.unDiff').textContent = '难度 ' + diffLabel(bi);
   el.classList.add('show');
   clearUnlockTimers();
@@ -1541,7 +1540,7 @@ function showUnlockNote(bi, immediate){
   if(!immediate){
     unlockTimers.push(setTimeout(()=>{
       if(!state.started) return;
-      showBiomeBanner('新 境 开 启 · ' + bio.name);
+      showBiomeBanner('新 区 开 启 · ' + bio.name);
       toast('可按「地 图」前往 · ' + bio.name);
       screenFlash('rgba(255,235,160,.32)', 700);
       shake(6, 0.35);
@@ -1697,7 +1696,7 @@ function castSkill(slot){
   if(skillId == null) return;
   const sk = SKILL_LIBRARY[skillId];
   if(!sk) return;
-  if(!G.unlockedSkills.has(skillId)){ toast('此术未悟。'); return; }
+  if(!G.unlockedSkills.has(skillId)){ toast('此术未悟'); return; }
   if((G.cd[skillId] || 0) > 0 || G.mp < sk.mp) return;
   G.mp -= sk.mp;
   G.cd[skillId] = sk.cd;
@@ -1879,7 +1878,7 @@ function castSkill(slot){
       addFloat(P.x, P.y - 56, '+' + fmt(amount) + ' 护盾', '#ffe070', true);
       fxRing(P.x, P.y, 85, c, 0.6, 4);
       fxRing(P.x, P.y, 60, SUB, 0.45, 6);
-      fxRunes(P.x, P.y - 6, 52, 5, FX, 0.7, '护');
+      fxRunes(P.x, P.y - 6, 52, 5, FX, 0.7, '剑');
       for(let k = 0; k < 22; k++){
         const a = k / 22 * Math.PI * 2;
         addParticle(P.x + Math.cos(a)*28, P.y - 26 + Math.sin(a)*22, {
@@ -1893,7 +1892,7 @@ function castSkill(slot){
       const dmg = G.atk * sk.power * (isSwordGod() ? 1.3 : 1) * wMul;
       fxPillar(P.x, P.y, 110, SUB, 0.85, 40);
       fxPillar(P.x, P.y, 60, FX, 0.6, 70);
-      fxRunes(P.x, P.y - 6, radius * 0.9, 11, FX, 1.0, '归');
+      fxRunes(P.x, P.y - 6, radius * 0.9, 11, FX, 1.0, '剑');
       for(let k = 0; k < 4; k++){
         const a = k * Math.PI/2 + 0.3;
         fxSlash(P.x, P.y - 26, a, radius * 1.1, k % 2 ? SUB : FX, 0.55 + k * 0.04, 14);
@@ -2020,7 +2019,7 @@ function castSkill(slot){
     case 'swords': {
       const n = 18;
       const dmg = G.atk * sk.power * wMul;
-      fxRunes(P.x, P.y - 6, 80, 4, FX, 0.7, '阵');
+      fxRunes(P.x, P.y - 6, 80, 4, FX, 0.7, '剑');
       fxRing(P.x, P.y, 70, SUB, 0.4, 3);
       for(let k = 0; k < n; k++){
         const a = (k / n) * Math.PI * 2 + rnd(-0.08, 0.08);
@@ -2076,7 +2075,7 @@ function castSkill(slot){
       state.domainColorSub = SUB;
       state.domainTrail = sk.trail;
       state.domainSkill = sk;
-      toast('领域展开！');
+      toast('领域展开');
       fxRing(P.x, P.y, sk.radius * 1.1, c, 0.9, 6);
       fxShock(P.x, P.y, sk.radius * 1.3, SUB, 0.7, 12);
       fxRunes(P.x, P.y - 6, sk.radius, 7, FX, 1.0, sk.key);
@@ -2231,7 +2230,7 @@ function playerDie(){
   state.grace = 3;
   state.domain = 0;
   state.camX = P.x - W/2; state.camY = P.y - H/2;
-  toast('你被击倒，修为受损。');
+  toast('你被击倒，修为受损');
   save();
 }
 
@@ -2463,7 +2462,7 @@ function updateEnemy(e, dt){
     if(e.elite){
       if(!e.enraged && e.hp < e.maxHp * 0.5){
         e.enraged = true;
-        toast('『' + e.name + '』暴怒！');
+        toast('「' + e.name + '」暴怒！');
         addFloat(e.x, e.y - 210, '暴怒', '#ff6070', true);
         effects.push({ type:'shockwave', x:e.x, y:e.y, maxR:300, color:'255,80,100',
           life:0.6, maxLife:0.6, width:14 });
@@ -2595,12 +2594,12 @@ function updateSkillUI(){
     const skillId = G.equipped[slot];
     if(skillId == null){
       btn.classList.add('empty'); btn.classList.remove('cooling','noMp');
-      mask.style.height = '0%'; nameEl.textContent = '空'; mpEl.textContent = '—'; continue;
+      mask.style.height = '0%'; nameEl.textContent = ''; mpEl.textContent = ''; continue;
     }
     const sk = SKILL_LIBRARY[skillId];
     if(!sk || !G.unlockedSkills.has(skillId)){
       btn.classList.add('empty'); btn.classList.remove('cooling','noMp');
-      mask.style.height = '0%'; nameEl.textContent = '未悟'; mpEl.textContent = '—'; continue;
+      mask.style.height = '0%'; nameEl.textContent = '未悟'; mpEl.textContent = ''; continue;
     }
     btn.classList.remove('empty');
     nameEl.textContent = sk.key;
@@ -2641,9 +2640,9 @@ function renderMap(){
       <div class="mcHeader"><span class="mcEmoji">${BIOME_EMOJIS[i] || '🗺️'}</span><span class="mcName">${bio.name}</span></div>
       <div class="mcReq">难度 ${diffLabel(i)} · 需 ${reqName}期${isCurrent ? ' · 当前所在' : ''}${isNew ? ' · <b style="color:#ffd870">新</b>' : ''}</div>
       <div class="mcDesc">${bio.desc}</div>
-      <div class="mcDesc" style="color:#ffb8c8">妖王 · ${boss ? boss.name : '—'}</div>
-      <div class="mcDesc" style="color:${skillUnlocked?'#89e2ce':'rgba(200,190,170,.45)'}">功法：${skillUnlocked ? '✓ ' + skillName : '击败妖王可得'}</div>
-      <div class="mcDesc" style="color:${weaponOwned?'#ffd870':'rgba(200,190,170,.45)'}">神兵：${weaponOwned ? '✓ ' + weapon.name : '击败妖王可得'}</div>
+      <div class="mcDesc" style="color:#ffb8c8">妖王 · ${boss ? boss.name : '未现'}</div>
+      <div class="mcDesc" style="color:${skillUnlocked?'#89e2ce':'rgba(200,190,170,.45)'}">功法：${skillUnlocked ? '「' + skillName : '击败妖王可得'}</div>
+      <div class="mcDesc" style="color:${weaponOwned?'#ffd870':'rgba(200,190,170,.45)'}">神兵：${weaponOwned ? '「' + weapon.name : '击败妖王可得'}</div>
       ${nextBio ? `<div class="mcDesc" style="color:rgba(255,200,120,.5)">下一境 · ${nextBio.name}（${REALM_NAMES[nextBio.realmReq]}期）</div>` : ''}
       ${unlocked ? '' : `<div class="mcLock">🔒 需 ${REALM_NAMES[bio.realmReq]}期修为</div>`}
     `;
@@ -2699,8 +2698,8 @@ function renderSkillBook(){
     b.className = 'skSlotBtn' + (i === selectedSlot ? ' selected' : '');
     b.innerHTML = `
       <span class="slotNum">${i+1}</span>
-      <span class="slotKey" style="color:${sk?`rgba(${sk.color},1)`:'#555'}">${sk?sk.key:'—'}</span>
-      <span class="slotName">${sk?sk.name:'空'}</span>
+      <span class="slotKey" style="color:${sk?`rgba(${sk.color},1)`:'#555'}">${sk?sk.key:''}</span>
+      <span class="slotName">${sk?sk.name:''}</span>
     `;
     b.onclick = () => { selectedSlot = i; renderSkillBook(); };
     slotsEl.appendChild(b);
@@ -2713,11 +2712,11 @@ function renderSkillBook(){
     const card = document.createElement('div');
     card.className = 'skCard' + (equippedIn >= 0 ? ' equipped' : '') + (unlocked ? '' : ' locked');
     let tag = '';
-    if(equippedIn >= 0) tag = `<div class="cardTag">已装备 · 槽 ${equippedIn+1}</div>`;
+    if(equippedIn >= 0) tag = `<div class="cardTag">已装备 · 位 ${equippedIn+1}</div>`;
     else if(!unlocked){
       if(id >= 14 && id <= 23) tag = `<div class="cardLock">🔒 击败${BIOMES[id-14].name}妖王</div>`;
-      else if(sk.unlockLv) tag = `<div class="cardLock">🔒 需${REALM_NAMES[Math.floor(sk.unlockLv/9)]}期</div>`;
-      else tag = `<div class="cardLock">🔒 未解锁</div>`;
+      else if(sk.unlockLv) tag = `<div class="cardLock">🔒 需${REALM_NAMES[Math.floor(sk.unlockLv/9)]}期/div>`;
+      else tag = `<div class="cardLock">🔒 未解锁/div>`;
     }
     card.innerHTML = `
       <div class="cardTop"><span class="cardKey" style="color:${unlocked?`rgba(${sk.color},1)`:'#888'}">${sk.key}</span><span class="cardName">${sk.name}</span></div>
@@ -4412,7 +4411,7 @@ function drawBladeBody(w, halfL, halfW, t, glow){
     ctx.stroke();
     ctx.restore();
   }
-  /* 剑身灵光罩 */
+  /* 剑身灵光层 */
   ctx.save();
   ctx.globalAlpha = 0.22 + 0.12 * Math.sin(t * 2.4 + (w.id || 0));
   const gd = ctx.createLinearGradient(-halfL, 0, halfL, 0);
@@ -5802,11 +5801,11 @@ function renderHUD(){
   }
   const sl = $('stoneLine'); if(sl) sl.textContent = '灵石 ' + fmt(G.stones);
   const w = currentWeapon();
-  const wl = $('weaponLine'); if(wl) wl.textContent = '⚔ ' + w.name + ' +' + Math.round(w.atkBonus*100) + '%';
+  const wl = $('weaponLine'); if(wl) wl.textContent = '「' + w.name + '」' + ' +' + Math.round(w.atkBonus*100) + '%';
   const swCnt = swordCount();
   let sw = '剑阵 · 未悟';
-  if(isSwordGod()) sw = '剑阵 · ' + swCnt + ' 剑齐鸣';
-  else if(isSwordArrayOn()) sw = '剑阵 · ' + swCnt + ' 剑环身';
+  if(isSwordGod()) sw = '剑阵 · ' + swCnt + ' 剑齐出';
+  else if(isSwordArrayOn()) sw = '剑阵 · ' + swCnt + ' 剑环绕';
   const swl = $('swordLine'); if(swl) swl.textContent = sw;
   const bl = $('biomeLine');
   if(bl) bl.textContent = (BIOMES[state.biome]||BIOMES[0]).name + ' · 难度 ' + (state.biome + 1);
@@ -5848,7 +5847,7 @@ function buildSkillBar(){
   for(let i = 0; i < 8; i++){
     const b = document.createElement('button');
     b.className = 'skillBtn'; b.id = 'skillBtn' + i;
-    b.innerHTML = '<span class="skName">—</span><span class="skMp">—</span><div class="cdMask"></div>';
+    b.innerHTML = '<span class="skName"></span><span class="skMp"></span><div class="cdMask"></div>';
     b.addEventListener('pointerdown', ev=>{ ev.preventDefault(); castSkill(i); });
     bar.appendChild(b);
   }
@@ -5972,14 +5971,14 @@ function backToMenu(){
   const ss = $('startScreen');
   if(ss) ss.style.display = 'flex';
   const sb = $('startBtn');
-  if(sb) sb.textContent = '继 续 修 行';
+  if(sb) sb.textContent = '继 续';
 }
 
 function resumeGame(){
   const ss = $('startScreen');
   if(ss) ss.style.display = 'none';
   const sb = $('startBtn');
-  if(sb) sb.textContent = '踏 入 仙 途';
+  if(sb) sb.textContent = '继 续';
   paused = false;
   state.started = true;
   state.grace = Math.max(state.grace, 1.5);
@@ -6094,7 +6093,7 @@ function loop(now){
       render(dt);
     }
   } catch(err){
-    if(!errorShown){ errorShown = true; console.error('[仙途] 运行错误：', err); }
+    if(!errorShown){ errorShown = true; console.error('[仙途] 运行错误]', err); }
     const origin = BIOME_ORIGIN[state.biome] || { x: 0, y: 0 };
     if(!isNum(P.x) || !isNum(P.y)){ P.x = origin.x; P.y = origin.y; }
     if(!isNum(state.camX) || !isNum(state.camY)){ state.camX = P.x - W/2; state.camY = P.y - H/2; }
@@ -6155,7 +6154,7 @@ function initGame(){
   toast('拖动屏幕 / WASD 移动');
   setTimeout(()=> toast('建筑群落散落四方 · 奇遇各处不同'), 2600);
   setTimeout(()=> toast('妖王会施展专属神通，注意地面预警'), 5200);
-  setTimeout(()=> toast('越深处妖气越重 · 突破境界可开启新境'), 7600);
+  setTimeout(()=> toast('越深处妖气越盛 · 突破境界可开启新境'), 7600);
   if(!saveTimer) saveTimer = setInterval(save, 5000);
 }
 const startBtn = $('startBtn');
@@ -6172,9 +6171,7 @@ if(startBtn) startBtn.addEventListener('click', ()=>{
   const ss = $('startScreen'); if(ss) ss.style.display = 'none';
   resize();
   initGame();
-  maintainEnemies = function(){};
-  state.enemies.length = 0;
-  state.nextBossT = 1e9;
+  if(q.get('edit') === '1') maintainEnemies = function(){};
   const bi = parseInt(q.get('bi') || '0', 10) || 0;
   if(bi !== 0){
     state.biome = bi;
