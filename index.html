@@ -4795,8 +4795,12 @@ function drawPlayer(){
   }
   if(P.swing <= 0){
     ctx.save();
+    /* 剑柄握点，剑身以此为支点朝身体外侧伸出 */
     ctx.translate(-8, -18+y0);
-    ctx.rotate(-0.5 + Math.sin(state.t*2.2)*0.03);
+    /* 让剑刃始终朝外：握点相对身体中心 (0,-30) 的方向即朝外的方向，
+       剑身局部 +X 是剑尖，据此求出旋转角 */
+    const gripAng = Math.atan2((-18+y0) - (-30), -8);
+    ctx.rotate(gripAng + Math.sin(state.t*2.2)*0.03);
     ctx.globalAlpha = 0.95;
     drawBladeBody(w, 20, 2.4, state.t, 0.45);
     ctx.restore();
@@ -4838,14 +4842,15 @@ function drawSwordInLocal(){
   ctx.globalAlpha = 1;
   ctx.rotate(cur);
   ctx.translate(13, 0);
-  ctx.rotate(Math.PI / 2);
+  /* 剑尖朝外：剑身局部 +X 即剑尖方向，旋转至与径向 cur 一致，
+     剑柄留在半径 13 的内侧，挥砍时刃口始终朝外 */
   ctx.save();
   ctx.shadowColor = `rgba(${w.color},1)`; ctx.shadowBlur = 18;
   drawBladeBody(w, 46, 5.2, state.t, 1);
   ctx.restore();
   ctx.save();
-  ctx.rotate(-Math.PI/2);
-  ctx.translate(0, 46);
+  /* 剑尖灵光（局部 +X 端点） */
+  ctx.translate(46, 0);
   ctx.fillStyle = 'rgba(255,255,255,.95)';
   ctx.shadowColor = `rgba(${w.color},1)`; ctx.shadowBlur = 12;
   ctx.beginPath(); ctx.arc(0, 0, 2.2, 0, 7); ctx.fill();
@@ -5271,14 +5276,21 @@ function drawSwordArray(){
   const w = currentWeapon() || WEAPONS[0];
   const primaryRGB = isSwordGod() ? '255,220,120' : w.color;
   const radius = 58;
+  const RY = 0.55;                       // 环轨的纵向压扁比
   for(let i = 0; i < n; i++){
     const ang = state.swordAngle + i * (Math.PI*2 / n);
     const sx = P.x + Math.cos(ang) * radius;
-    const sy = P.y - 26 + Math.sin(ang) * radius * 0.55;
+    const sy = P.y - 26 + Math.sin(ang) * radius * RY;
+    /* 椭圆轨道上该点的「朝外」方向：对 (cos ang, RY*sin ang) 求切向后再取法向，
+       直接用真实角度会让剑身在压扁的环上歪斜 */
+    const outAng = Math.atan2(Math.sin(ang) * RY, Math.cos(ang));
     const sw = Math.sin(state.t * 3 + i) * 0.16;
     ctx.save();
+    /* 先移到轨道点，再沿朝外方向把剑身整体外推，
+       使剑柄落在环上、剑尖朝外，不会插进身体 */
     ctx.translate(sx, sy);
-    ctx.rotate(ang + Math.PI/2 + sw);
+    ctx.rotate(outAng + sw);
+    ctx.translate(14, 0);
     ctx.globalAlpha = 0.95;
     ctx.save();
     ctx.scale(1.25, 1.25);
@@ -5287,7 +5299,9 @@ function drawSwordArray(){
     ctx.restore();
     ctx.restore();
     ctx.fillStyle = `rgba(${primaryRGB},${0.5 + 0.5 * Math.sin(state.t * 8 + i)})`;
-    ctx.beginPath(); ctx.arc(sx + Math.cos(ang) * 20, sy + Math.sin(ang) * 20, 1.8, 0, 7); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx + Math.cos(outAng) * 34, sy + Math.sin(outAng) * 34, 1.8, 0, 7);
+    ctx.fill();
   }
   const innerN = Math.floor(n / 2) + 1;
   const innerR = 32;
@@ -5295,9 +5309,11 @@ function drawSwordArray(){
     const ang = state.swordInnerAngle + i * (Math.PI*2 / innerN);
     const sx = P.x + Math.cos(ang) * innerR;
     const sy = P.y - 26 + Math.sin(ang) * innerR * 0.6;
+    const outAng = Math.atan2(Math.sin(ang) * 0.6, Math.cos(ang));
     ctx.save();
     ctx.translate(sx, sy);
-    ctx.rotate(ang + Math.PI/2);
+    /* 内圈小剑同样剑尖朝外 */
+    ctx.rotate(outAng);
     ctx.globalAlpha = 0.8;
     ctx.shadowColor = `rgba(${primaryRGB},1)`; ctx.shadowBlur = 8;
     ctx.fillStyle = 'rgba(220,245,255,0.9)';
